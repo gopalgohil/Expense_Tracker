@@ -8,26 +8,17 @@ export const getExpenses = async (req, res) => {
     const { month, category } = req.query;
     const query = { userId: req.user._id };
 
-    // Filter by Category
-    if (category) {
-      query.category = category;
-    }
+    if (category) query.category = category;
 
-    // Filter by Month (Format: YYYY-MM)
     if (month) {
       const parts = month.split('-');
       if (parts.length === 2) {
         const year = parseInt(parts[0]);
-        const m = parseInt(parts[1]);
-
+        const m    = parseInt(parts[1]);
         if (!isNaN(year) && !isNaN(m) && m >= 1 && m <= 12) {
-          // Define start and end of the month in UTC
-          const startDate = new Date(Date.UTC(year, m - 1, 1, 0, 0, 0, 0));
-          const endDate = new Date(Date.UTC(year, m, 1, 0, 0, 0, 0)); // Start of next month (exclusive)
-
           query.date = {
-            $gte: startDate,
-            $lt: endDate,
+            $gte: new Date(Date.UTC(year, m - 1, 1)),
+            $lt:  new Date(Date.UTC(year, m, 1)),
           };
         } else {
           return res.status(400).json({ message: 'Invalid month format. Use YYYY-MM' });
@@ -49,31 +40,34 @@ export const getExpenses = async (req, res) => {
 // @route   POST /api/expenses
 // @access  Private
 const createExpense = async (req, res) => {
-  const { amount, category, date, description } = req.body;
+  const { amount, category, date, description, isRecurring, recurrenceInterval } = req.body;
 
   try {
-    // Validations
     if (amount === undefined || amount === null || !category || !date) {
       return res.status(400).json({ message: 'Please provide amount, category, and date' });
     }
-
     if (Number(amount) <= 0) {
       return res.status(400).json({ message: 'Expense amount must be a positive number' });
     }
+    if (isRecurring && !recurrenceInterval) {
+      return res.status(400).json({ message: 'Please select a recurrence interval' });
+    }
 
     const expense = await Expense.create({
-      amount: Number(amount),
+      amount:             Number(amount),
       category,
-      date: new Date(date),
-      description: description || '',
-      userId: req.user._id,
+      date:               new Date(date),
+      description:        description || '',
+      userId:             req.user._id,
+      isRecurring:        Boolean(isRecurring),
+      recurrenceInterval: isRecurring ? recurrenceInterval : null,
     });
 
     return res.status(201).json(expense);
   } catch (error) {
     console.error(error);
     if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map((val) => val.message);
+      const messages = Object.values(error.errors).map((v) => v.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
     return res.status(500).json({ message: error.message || 'Server error creating expense' });
@@ -84,39 +78,45 @@ const createExpense = async (req, res) => {
 // @route   PUT /api/expenses/:id
 // @access  Private
 const updateExpense = async (req, res) => {
-  const { amount, category, date, description } = req.body;
+  const { amount, category, date, description, isRecurring, recurrenceInterval } = req.body;
   const expenseId = req.params.id;
 
   try {
-    // Find expense
     const expense = await Expense.findById(expenseId);
+    if (!expense) return res.status(404).json({ message: 'Expense not found' });
 
-    if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
-    }
-
-    // Verify ownership
     if (expense.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this expense' });
     }
 
-    // Input Validation if fields are updated
     if (amount !== undefined) {
-      if (Number(amount) <= 0) {
-        return res.status(400).json({ message: 'Expense amount must be a positive number' });
-      }
+      if (Number(amount) <= 0) return res.status(400).json({ message: 'Amount must be positive' });
       expense.amount = Number(amount);
     }
-    if (category) expense.category = category;
-    if (date) expense.date = new Date(date);
+    if (category)              expense.category    = category;
+    if (date)                  expense.date        = new Date(date);
     if (description !== undefined) expense.description = description;
 
-    const updatedExpense = await expense.save();
-    return res.status(200).json(updatedExpense);
+    // Handle recurring changes
+    if (isRecurring !== undefined) {
+      expense.isRecurring = Boolean(isRecurring);
+      if (expense.isRecurring) {
+        if (!recurrenceInterval) {
+          return res.status(400).json({ message: 'Please select a recurrence interval' });
+        }
+        expense.recurrenceInterval = recurrenceInterval;
+      } else {
+        expense.recurrenceInterval = null;
+        expense.nextDueDate        = null;
+      }
+    }
+
+    const updated = await expense.save();
+    return res.status(200).json(updated);
   } catch (error) {
     console.error(error);
     if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map((val) => val.message);
+      const messages = Object.values(error.errors).map((v) => v.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
     return res.status(500).json({ message: error.message || 'Server error updating expense' });
@@ -128,16 +128,10 @@ const updateExpense = async (req, res) => {
 // @access  Private
 const deleteExpense = async (req, res) => {
   const expenseId = req.params.id;
-
   try {
-    // Find expense
     const expense = await Expense.findById(expenseId);
+    if (!expense) return res.status(404).json({ message: 'Expense not found' });
 
-    if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
-    }
-
-    // Verify ownership
     if (expense.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this expense' });
     }
@@ -150,9 +144,4 @@ const deleteExpense = async (req, res) => {
   }
 };
 
-export default {
-  getExpenses,
-  createExpense,
-  updateExpense,
-  deleteExpense,
-};
+export default { getExpenses, createExpense, updateExpense, deleteExpense };

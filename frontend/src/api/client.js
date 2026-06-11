@@ -36,4 +36,15 @@ export const createExpense  = (data)       => api.post('/expenses', data)
 export const updateExpense  = (id, data)   => api.put(`/expenses/${id}`, data)
 export const deleteExpense  = (id)         => api.delete(`/expenses/${id}`)
 
+// ── Budgets ──────────────────────────────────────
+export const getBudgets       = (params)     => api.get('/budgets', { params })
+export const getBudgetStatus  = (params)     => api.get('/budgets/status', { params })
+export const upsertBudget     = (data)       => api.post('/budgets', data)
+export const deleteBudget     = (id)         => api.delete(`/budgets/${id}`)
+
+// ── Analytics ────────────────────────────────────
+export const getTopCategories  = (params) => api.get('/analytics/top-categories',  { params })
+export const getMonthlyCompare = (params) => api.get('/analytics/monthly-compare', { params })
+export const getDailyBreakdown = (params) => api.get('/analytics/daily-breakdown', { params })
+
 export default api
