@@ -13,6 +13,9 @@ const INTERVALS = [
 
 const today = () => new Date().toISOString().split('T')[0]
 
+// Max date allowed = today (no future dates)
+const maxDate = today
+
 const ExpenseForm = ({ onSubmit, onCancel, initialData = null, loading = false }) => {
   const [form, setForm] = useState({
     amount: '', category: '', date: today(), description: '',
@@ -95,7 +98,9 @@ const ExpenseForm = ({ onSubmit, onCancel, initialData = null, loading = false }
       <div>
         <label className="label">Date *</label>
         <input name="date" type="date" value={form.date} onChange={handleChange}
-          className="input-field" required />
+          className="input-field"
+          max={maxDate()}
+          required />
       </div>
 
       {/* Note */}

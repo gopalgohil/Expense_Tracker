@@ -20,11 +20,19 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
     },
+    avatar: {
+      type: String,
+      default: null,
+    },
+    currency: {
+      type: String,
+      enum: ['INR', 'USD', 'EUR'],
+      default: 'INR',
+    },
   },
   { timestamps: true }
 );
 
-// Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(10);
@@ -32,7 +40,6 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// Method to compare passwords
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

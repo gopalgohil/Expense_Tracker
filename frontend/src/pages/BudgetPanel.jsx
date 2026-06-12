@@ -72,6 +72,7 @@ const BudgetPanel = ({ month, onMonthChange }) => {
           type="month" value={month}
           onChange={(e) => { onMonthChange(e.target.value); handleCancel() }}
           className="input-field max-w-[180px]"
+          max={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`}
         />
       </div>
 

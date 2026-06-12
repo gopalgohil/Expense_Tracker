@@ -1,15 +1,24 @@
 import Expense from '../models/Expense.js';
 
-// @desc    Get all user expenses (with optional month & category filters)
+// @desc    Get all user expenses (with optional filters, search, sort, pagination)
 // @route   GET /api/expenses
 // @access  Private
 export const getExpenses = async (req, res) => {
   try {
-    const { month, category } = req.query;
+    const {
+      month, category,
+      search, minAmount, maxAmount,
+      sortBy,
+      page  = 1,
+      limit = 20,
+    } = req.query;
+
     const query = { userId: req.user._id };
 
+    // Category filter
     if (category) query.category = category;
 
+    // Month filter
     if (month) {
       const parts = month.split('-');
       if (parts.length === 2) {
@@ -28,8 +37,46 @@ export const getExpenses = async (req, res) => {
       }
     }
 
-    const expenses = await Expense.find(query).sort({ date: -1 });
-    return res.status(200).json(expenses);
+    // Search — partial match on description (case-insensitive)
+    if (search && search.trim()) {
+      query.description = { $regex: search.trim(), $options: 'i' };
+    }
+
+    // Amount range filter
+    if (minAmount !== undefined || maxAmount !== undefined) {
+      query.amount = {};
+      if (minAmount !== undefined && !isNaN(Number(minAmount)))
+        query.amount.$gte = Number(minAmount);
+      if (maxAmount !== undefined && !isNaN(Number(maxAmount)))
+        query.amount.$lte = Number(maxAmount);
+    }
+
+    // Sort
+    let sortOption = { date: -1 }; // default: newest first
+    if (sortBy === 'date_asc')    sortOption = { date: 1 };
+    if (sortBy === 'amount_desc') sortOption = { amount: -1 };
+    if (sortBy === 'amount_asc')  sortOption = { amount: 1 };
+
+    // Pagination
+    const pageNum  = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
+    const skip     = (pageNum - 1) * limitNum;
+
+    // Run count + data fetch in parallel
+    const [total, expenses] = await Promise.all([
+      Expense.countDocuments(query),
+      Expense.find(query).sort(sortOption).skip(skip).limit(limitNum),
+    ]);
+
+    return res.status(200).json({
+      expenses,
+      pagination: {
+        total,
+        page:       pageNum,
+        limit:      limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: error.message || 'Server error fetching expenses' });
@@ -48,6 +95,14 @@ const createExpense = async (req, res) => {
     }
     if (Number(amount) <= 0) {
       return res.status(400).json({ message: 'Expense amount must be a positive number' });
+    }
+
+    // Reject future dates
+    const expenseDate = new Date(date);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (expenseDate > today) {
+      return res.status(400).json({ message: 'Expense date cannot be in the future.' });
     }
     if (isRecurring && !recurrenceInterval) {
       return res.status(400).json({ message: 'Please select a recurrence interval' });

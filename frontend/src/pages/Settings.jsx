@@ -1,0 +1,316 @@
+import { useState } from 'react'
+import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
+import { updateUserProfile, changePassword, deleteAccount } from '../api/client'
+import { useNavigate } from 'react-router-dom'
+
+const CURRENCIES = [
+  { value: 'INR', label: '₹  Indian Rupee (INR)' },
+  { value: 'USD', label: '$  US Dollar (USD)'    },
+  { value: 'EUR', label: '€  Euro (EUR)'          },
+]
+
+// ── Reusable components defined OUTSIDE Settings ──────────────
+// (if defined inside, React recreates them on every render → input loses focus)
+
+const Section = ({ title, children }) => (
+  <div className="card p-6 space-y-4">
+    <h3 className="text-base font-semibold text-ink-800 border-b border-ink-100 pb-3">{title}</h3>
+    {children}
+  </div>
+)
+
+const EyeBtn = ({ show, toggle }) => (
+  <button
+    type="button"
+    onClick={toggle}
+    tabIndex={-1}
+    style={{
+      position: 'absolute', right: 12, top: '50%',
+      transform: 'translateY(-50%)', background: 'none',
+      border: 'none', cursor: 'pointer', padding: 0,
+      color: '#9ca3af', display: 'flex',
+    }}
+  >
+    {show ? (
+      <svg width="18" height="18" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
+        <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
+        <line x1="1" y1="1" x2="23" y2="23"/>
+      </svg>
+    ) : (
+      <svg width="18" height="18" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    )}
+  </button>
+)
+
+const PwdField = ({ label, name, show, toggle, value, onChange, error }) => (
+  <div>
+    <label className="label">{label}</label>
+    <div style={{ position: 'relative' }}>
+      <input
+        name={name}
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        placeholder="••••••••"
+        autoComplete="off"
+        className={`input-field ${error ? 'border-red-400' : ''}`}
+        style={{ paddingRight: 40 }}
+      />
+      <EyeBtn show={show} toggle={toggle} />
+    </div>
+    {error && (
+      <p style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>⚠ {error}</p>
+    )}
+  </div>
+)
+
+const ProfileField = ({ label, name, type = 'text', value, onChange, placeholder, error }) => (
+  <div>
+    <label className="label">{label}</label>
+    <input
+      name={name} type={type} value={value}
+      onChange={onChange} placeholder={placeholder}
+      className={`input-field ${error ? 'border-red-400' : ''}`}
+    />
+    {error && <p style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>⚠ {error}</p>}
+  </div>
+)
+
+// ── Main Settings component ────────────────────────────────────
+const Settings = () => {
+  const { user, updateUser, logout } = useAuth()
+  const navigate = useNavigate()
+
+  // Profile state
+  const [profile,       setProfile]       = useState({ name: user?.name || '', email: user?.email || '', currency: user?.currency || 'INR' })
+  const [profileErr,    setProfileErr]    = useState({})
+  const [profileSaving, setProfileSaving] = useState(false)
+
+  // Password state
+  const [pwd,      setPwd]      = useState({ current: '', newPass: '', confirm: '' })
+  const [pwdErr,   setPwdErr]   = useState({})
+  const [pwdSaving, setPwdSaving] = useState(false)
+  const [showCur,  setShowCur]  = useState(false)
+  const [showNew,  setShowNew]  = useState(false)
+  const [showCon,  setShowCon]  = useState(false)
+
+  // Delete state
+  const [showDelete, setShowDelete] = useState(false)
+  const [deletePass, setDeletePass] = useState('')
+  const [deleteErr,  setDeleteErr]  = useState('')
+  const [deleting,   setDeleting]   = useState(false)
+
+  // ── Profile handlers ──
+  const handleProfileChange = (e) => {
+    setProfile((p) => ({ ...p, [e.target.name]: e.target.value }))
+    setProfileErr((p) => ({ ...p, [e.target.name]: '' }))
+  }
+
+  const handleProfileSave = async (e) => {
+    e.preventDefault()
+    const errs = {}
+    if (!profile.name.trim())  errs.name  = 'Name is required.'
+    if (!profile.email.trim()) errs.email = 'Email is required.'
+    if (Object.keys(errs).length) { setProfileErr(errs); return }
+
+    setProfileSaving(true)
+    try {
+      const { data } = await updateUserProfile(profile)
+      updateUser(data)
+      toast.success('Profile updated successfully!')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update profile.')
+    } finally { setProfileSaving(false) }
+  }
+
+  // ── Password handlers ──
+  const handlePwdChange = (e) => {
+    setPwd((p) => ({ ...p, [e.target.name]: e.target.value }))
+    setPwdErr((p) => ({ ...p, [e.target.name]: '' }))
+  }
+
+  const handlePwdSave = async (e) => {
+    e.preventDefault()
+    const errs = {}
+    if (!pwd.current)               errs.current = 'Current password is required.'
+    if (!pwd.newPass)               errs.newPass = 'New password is required.'
+    else if (pwd.newPass.length < 6) errs.newPass = 'Must be at least 6 characters.'
+    if (!pwd.confirm)               errs.confirm = 'Please confirm new password.'
+    else if (pwd.confirm !== pwd.newPass) errs.confirm = 'Passwords do not match.'
+    if (Object.keys(errs).length)   { setPwdErr(errs); return }
+
+    setPwdSaving(true)
+    try {
+      await changePassword({ currentPassword: pwd.current, newPassword: pwd.newPass })
+      toast.success('Password changed successfully!')
+      setPwd({ current: '', newPass: '', confirm: '' })
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to change password.'
+      if (msg.toLowerCase().includes('current')) setPwdErr({ current: msg })
+      else toast.error(msg)
+    } finally { setPwdSaving(false) }
+  }
+
+  // ── Delete handler ──
+  const handleDeleteAccount = async () => {
+    if (!deletePass) { setDeleteErr('Please enter your password.'); return }
+    setDeleting(true)
+    try {
+      await deleteAccount({ password: deletePass })
+      // Only redirect on SUCCESS
+      toast.success('Account deleted successfully.')
+      logout()
+      navigate('/login')
+    } catch (err) {
+      // Stay on modal — show error in red text, do NOT redirect
+      const msg = err.response?.data?.message || 'Something went wrong. Please try again.'
+      setDeleteErr(msg)
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-bold text-ink-800">Settings</h2>
+        <p className="text-sm text-ink-400 mt-1">Manage your account and preferences</p>
+      </div>
+
+      {/* ── Profile ── */}
+      <Section title="Profile Information">
+        <form onSubmit={handleProfileSave} className="space-y-4" noValidate>
+          <ProfileField
+            label="Full Name" name="name" value={profile.name}
+            onChange={handleProfileChange} placeholder="Your name"
+            error={profileErr.name}
+          />
+          <ProfileField
+            label="Email Address" name="email" type="email" value={profile.email}
+            onChange={handleProfileChange} placeholder="you@example.com"
+            error={profileErr.email}
+          />
+          <div>
+            <label className="label">Currency Preference</label>
+            <select name="currency" value={profile.currency}
+              onChange={handleProfileChange} className="input-field bg-white">
+              {CURRENCIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-ink-400 mt-1">Used for formatting amounts across the app</p>
+          </div>
+          <button type="submit" disabled={profileSaving} className="btn-primary">
+            {profileSaving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </form>
+      </Section>
+
+      {/* ── Change Password ── */}
+      <Section title="Change Password">
+        <form onSubmit={handlePwdSave} className="space-y-4" noValidate>
+          <PwdField
+            label="Current Password" name="current"
+            show={showCur} toggle={() => setShowCur((p) => !p)}
+            value={pwd.current} onChange={handlePwdChange}
+            error={pwdErr.current}
+          />
+          <PwdField
+            label="New Password" name="newPass"
+            show={showNew} toggle={() => setShowNew((p) => !p)}
+            value={pwd.newPass} onChange={handlePwdChange}
+            error={pwdErr.newPass}
+          />
+          <PwdField
+            label="Confirm New Password" name="confirm"
+            show={showCon} toggle={() => setShowCon((p) => !p)}
+            value={pwd.confirm} onChange={handlePwdChange}
+            error={pwdErr.confirm}
+          />
+          {pwd.confirm && (
+            <p style={{ fontSize: 12, color: pwd.confirm === pwd.newPass ? '#16a34a' : '#dc2626' }}>
+              {pwd.confirm === pwd.newPass ? '✅ Passwords match' : '❌ Passwords do not match'}
+            </p>
+          )}
+          <button type="submit" disabled={pwdSaving} className="btn-primary">
+            {pwdSaving ? 'Updating…' : 'Update Password'}
+          </button>
+        </form>
+      </Section>
+
+      {/* ── Danger Zone ── */}
+      <div className="card p-6 border border-red-200">
+        <h3 className="text-base font-semibold text-red-600 border-b border-red-100 pb-3 mb-4">
+          ⚠ Danger Zone
+        </h3>
+        <p className="text-sm text-ink-500 mb-4">
+          Permanently delete your account and all your data — expenses, budgets, everything.
+          This action <strong>cannot be undone</strong>.
+        </p>
+        <button
+          onClick={() => setShowDelete(true)}
+          className="px-4 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-semibold border border-red-200 hover:bg-red-600 hover:text-white transition-colors"
+        >
+          Delete My Account
+        </button>
+      </div>
+
+      {/* ── Delete Modal ── */}
+      {showDelete && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div style={{ background:'#fff', borderRadius:20, padding:'32px 28px', width:'100%', maxWidth:380, boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ width:56, height:56, borderRadius:'50%', background:'#fee2e2', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px' }}>
+              <svg width="28" height="28" fill="none" stroke="#ef4444" strokeWidth="2.2"
+                strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+              </svg>
+            </div>
+            <h3 style={{ fontSize:18, fontWeight:700, color:'#0f0e0c', textAlign:'center', marginBottom:8 }}>
+              Delete Account?
+            </h3>
+            <p style={{ fontSize:13, color:'#7a7670', textAlign:'center', marginBottom:20, lineHeight:1.5 }}>
+              All your expenses, budgets and data will be permanently deleted.
+              Enter your password to confirm.
+            </p>
+            <div style={{ marginBottom:12 }}>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={deletePass}
+                onChange={(e) => { setDeletePass(e.target.value); setDeleteErr('') }}
+                className="input-field"
+              />
+              {deleteErr && <p style={{ color:'#dc2626', fontSize:12, marginTop:4 }}>⚠ {deleteErr}</p>}
+            </div>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+              style={{ display:'block', width:'100%', padding:'12px', borderRadius:12, background:'#ef4444', color:'#fff', fontWeight:700, fontSize:15, border:'none', cursor:'pointer', marginBottom:10, opacity: deleting ? 0.6 : 1 }}
+            >
+              {deleting ? 'Deleting…' : 'Yes, Delete My Account'}
+            </button>
+            <button
+              onClick={() => { setShowDelete(false); setDeletePass(''); setDeleteErr('') }}
+              style={{ display:'block', width:'100%', padding:'11px', borderRadius:12, background:'#f5f4f0', color:'#4a4740', fontWeight:500, fontSize:14, border:'none', cursor:'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default Settings

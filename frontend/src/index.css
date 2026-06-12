@@ -2,13 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Smooth transition on theme switch ── */
+*, *::before, *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+/* Disable transition for elements that shouldn't animate */
+input, textarea, select, button svg {
+  transition: none;
+}
+
 @layer base {
   * { box-sizing: border-box; }
-  body { @apply bg-ink-50 text-ink-800 font-sans antialiased; }
+
+  body {
+    @apply bg-ink-50 text-ink-800 font-sans antialiased;
+  }
+
+  /* ── Dark mode body ── */
+  .dark body {
+    background-color: #0f1117;
+    color: #e8e6df;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
   input, select, textarea { @apply outline-none; }
 }
 
 @layer components {
+
+  /* ── Buttons ── */
   .btn-primary {
     @apply bg-sage text-white font-medium px-4 py-2.5 rounded-xl
            hover:bg-sage-dark transition-colors duration-150
@@ -18,16 +43,93 @@
     @apply text-ink-500 font-medium px-4 py-2.5 rounded-xl
            hover:bg-ink-100 transition-colors duration-150;
   }
+  .dark .btn-ghost {
+    @apply text-gray-300 hover:bg-gray-700;
+  }
+
+  /* ── Input field ── */
   .input-field {
     @apply w-full bg-white border border-ink-200 rounded-xl px-4 py-3
            text-ink-800 placeholder-ink-300
            focus:border-sage focus:ring-2 focus:ring-sage/20
            transition-all duration-150 text-sm;
   }
+  .dark .input-field {
+    background-color: #1e2130 !important;
+    border-color: #374151 !important;
+    color: #e8e6df !important;
+  }
+  .dark .input-field::placeholder {
+    color: #6b7280 !important;
+  }
+  .dark .input-field:focus {
+    border-color: #4a7c59 !important;
+  }
+  .dark select.input-field option {
+    background-color: #1e2130;
+    color: #e8e6df;
+  }
+
+  /* ── Card ── */
   .card {
     @apply bg-white rounded-2xl shadow-card border border-ink-100;
   }
+  .dark .card {
+    background-color: #1a1d2e !important;
+    border-color: #2d3148 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+  }
+
+  /* ── Label ── */
   .label {
     @apply text-xs font-medium text-ink-400 uppercase tracking-wider mb-1.5 block;
   }
+  .dark .label {
+    color: #9ca3af !important;
+  }
 }
+
+/* ── Dark mode: page backgrounds ── */
+.dark .min-h-screen,
+.dark .bg-ink-50 {
+  background-color: #0f1117 !important;
+}
+
+/* ── Dark mode: sidebar ── */
+.dark nav,
+.dark aside > div {
+  background-color: #13161f !important;
+  border-color: #2d3148 !important;
+}
+
+/* ── Dark mode: text colors ── */
+.dark .text-ink-800 { color: #e8e6df !important; }
+.dark .text-ink-700 { color: #d1cfc6 !important; }
+.dark .text-ink-600 { color: #b0ada3 !important; }
+.dark .text-ink-500 { color: #9ca3af !important; }
+.dark .text-ink-400 { color: #6b7280 !important; }
+
+/* ── Dark mode: borders ── */
+.dark .border-ink-100 { border-color: #2d3148 !important; }
+.dark .border-ink-200 { border-color: #374151 !important; }
+
+/* ── Dark mode: hover backgrounds ── */
+.dark .hover\:bg-ink-50:hover  { background-color: #1e2130 !important; }
+.dark .hover\:bg-ink-100:hover { background-color: #252840 !important; }
+
+/* ── Dark mode: sage light ── */
+.dark .bg-sage-light { background-color: #1a2e22 !important; }
+
+/* ── Dark mode: top mobile header ── */
+.dark header.lg\:hidden {
+  background-color: #13161f !important;
+  border-color: #2d3148 !important;
+}
+
+/* ── Dark mode: pulse skeleton ── */
+.dark .bg-ink-100 { background-color: #252840 !important; }
+
+/* ── Dark mode: scrollbars ── */
+.dark ::-webkit-scrollbar { width: 6px; }
+.dark ::-webkit-scrollbar-track { background: #0f1117; }
+.dark ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }

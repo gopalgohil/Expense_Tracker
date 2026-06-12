@@ -7,21 +7,35 @@ import {
 } from '../api/client'
 
 export const useExpenses = () => {
-  const [expenses, setExpenses]         = useState([])
-  const [allExpenses, setAllExpenses]   = useState([])
-  const [loading, setLoading]           = useState(false)
-  const [error, setError]               = useState(null)
+  const [expenses,    setExpenses]    = useState([])
+  const [allExpenses, setAllExpenses] = useState([])
+  const [pagination,  setPagination]  = useState({ total: 0, page: 1, limit: 20, totalPages: 1 })
+  const [loading,     setLoading]     = useState(false)
+  const [error,       setError]       = useState(null)
 
   const fetchExpenses = useCallback(async (filters = {}) => {
     setLoading(true); setError(null)
     try {
-      // Fetch filtered expenses + all-time expenses in parallel
-      const [filtered, all] = await Promise.all([
+      // Filtered fetch (with search, sort, pagination)
+      // All-time fetch (no filters, no pagination — for charts)
+      const [filteredRes, allRes] = await Promise.all([
         apiGet(filters),
-        apiGet({}),           // no filters → full history for trend chart
+        apiGet({ limit: 9999 }),   // fetch all for charts
       ])
-      setExpenses(filtered.data)
-      setAllExpenses(all.data)
+
+      // New response shape: { expenses, pagination }
+      const filteredData = filteredRes.data
+      if (filteredData?.expenses) {
+        setExpenses(filteredData.expenses)
+        setPagination(filteredData.pagination)
+      } else {
+        // Fallback if old shape
+        setExpenses(filteredData)
+      }
+
+      const allData = allRes.data
+      setAllExpenses(allData?.expenses || allData || [])
+
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch expenses')
     } finally { setLoading(false) }
@@ -60,5 +74,9 @@ export const useExpenses = () => {
     }
   }
 
-  return { expenses, allExpenses, loading, error, fetchExpenses, addExpense, editExpense, removeExpense }
+  return {
+    expenses, allExpenses, pagination,
+    loading, error,
+    fetchExpenses, addExpense, editExpense, removeExpense,
+  }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { useExpenses }      from '../hooks/useExpenses'
 import { useBudgets }       from '../hooks/useBudgets'
@@ -14,7 +14,11 @@ import ExportButtons        from '../components/ExportButtons'
 import SummaryCards         from '../components/SummaryCards'
 import DailyBarChart        from '../components/DailyBarChart'
 import MonthCompareChart    from '../components/MonthCompareChart'
-import BudgetPanel from './BudgetPanel'
+import SearchFilterBar      from '../components/SearchFilterBar'
+import Pagination           from '../components/Pagination'
+import DarkModeToggle       from '../components/DarkModeToggle'
+import BudgetPanel          from './BudgetPanel'
+import Settings             from './Settings'
 
 const CATEGORIES = [
   '', 'Food & Dining', 'Transport', 'Shopping', 'Entertainment',
@@ -26,9 +30,13 @@ const currentMonth = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+const maxMonth = currentMonth
+
+const DEFAULT_ADVANCED = { minAmount: '', maxAmount: '', sortBy: 'date_desc' }
+
 const Dashboard = () => {
   const {
-    expenses, allExpenses, loading, error,
+    expenses, allExpenses, pagination, loading, error,
     fetchExpenses, addExpense, editExpense, removeExpense,
   } = useExpenses()
   const { status, fetchBudgets, refreshStatus } = useBudgets()
@@ -36,20 +44,39 @@ const Dashboard = () => {
 
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarOpen,   setSidebarOpen]   = useState(false)
-  const [filters, setFilters]             = useState({ month: currentMonth(), category: '' })
-  const [addLoading, setAddLoading]       = useState(false)
+  const [filters,    setFilters]    = useState({ month: currentMonth(), category: '' })
+  const [search,     setSearch]     = useState('')
+  const [advanced,   setAdvanced]   = useState(DEFAULT_ADVANCED)
+  const [page,       setPage]       = useState(1)
+  const [addLoading, setAddLoading] = useState(false)
   const notifiedRef = useRef(new Set())
   const formRef     = useRef(null)
 
+  // Build full params object for API
+  const buildParams = useCallback(() => {
+    const p = { ...filters, page, limit: 20, sortBy: advanced.sortBy }
+    if (search)              p.search    = search
+    if (advanced.minAmount)  p.minAmount = advanced.minAmount
+    if (advanced.maxAmount)  p.maxAmount = advanced.maxAmount
+    return p
+  }, [filters, search, advanced, page])
+
+  // Fetch expenses whenever any filter/search/sort/page changes
   useEffect(() => {
-    fetchExpenses(filters)
+    fetchExpenses(buildParams())
+  }, [filters, search, advanced, page])
+
+  // Fetch budgets + analytics only when MONTH changes (not on search/sort)
+  // Also reset budget notifications only on month change
+  useEffect(() => {
     fetchBudgets(filters.month)
     fetchAnalytics(filters.month)
-    notifiedRef.current = new Set()
-  }, [filters])
+    notifiedRef.current = new Set()   // reset only on month change
+  }, [filters.month])
 
-  // Toast when budget crosses 90%
+  // Toast when budget crosses 90% — only fire once per category per session
   useEffect(() => {
+    if (!status.length) return
     status.forEach((item) => {
       if (item.percent >= 90 && !notifiedRef.current.has(item.category)) {
         notifiedRef.current.add(item.category)
@@ -59,6 +86,7 @@ const Dashboard = () => {
             ? `🚨 ${item.category} is over budget! (${item.percent}%)`
             : `⚠️ ${item.category} is at ${item.percent}% of budget`,
           {
+            id: `budget-${item.category}`,   // prevent duplicate toasts
             style: {
               background: over ? '#fee2e2' : '#fef9c3',
               color:      over ? '#b91c1c' : '#92400e',
@@ -78,9 +106,17 @@ const Dashboard = () => {
       toast.success('Expense added!')
       await refreshStatus(filters.month)
       setActiveSection('dashboard')
+      setPage(1)
     }
     setAddLoading(false)
     return result
+  }
+
+  const handleResetAll = () => {
+    setFilters({ month: currentMonth(), category: '' })
+    setSearch('')
+    setAdvanced(DEFAULT_ADVANCED)
+    setPage(1)
   }
 
   const handleEdit = async (id, formData) => {
@@ -123,6 +159,10 @@ const Dashboard = () => {
       /* ── Budgets ── */
       case 'budgets':
         return <BudgetPanel month={filters.month} onMonthChange={(m) => setFilters((p) => ({ ...p, month: m }))} />
+
+      /* ── Settings ── */
+      case 'settings':
+        return <Settings />
 
       /* ── Charts ── */
       case 'charts':
@@ -175,13 +215,14 @@ const Dashboard = () => {
                 <div className="flex-1 min-w-[140px]">
                   <label className="label">Month</label>
                   <input name="month" type="month" value={filters.month}
-                    onChange={(e) => setFilters((p) => ({ ...p, month: e.target.value }))}
-                    className="input-field" />
+                    onChange={(e) => { setFilters((p) => ({ ...p, month: e.target.value })); setPage(1) }}
+                    className="input-field"
+                    max={maxMonth()} />
                 </div>
                 <div className="flex-1 min-w-[140px]">
                   <label className="label">Category</label>
                   <select name="category" value={filters.category}
-                    onChange={(e) => setFilters((p) => ({ ...p, category: e.target.value }))}
+                    onChange={(e) => { setFilters((p) => ({ ...p, category: e.target.value })); setPage(1) }}
                     className="input-field bg-white">
                     {CATEGORIES.map((c) => (
                       <option key={c} value={c}>{c || 'All categories'}</option>
@@ -189,11 +230,19 @@ const Dashboard = () => {
                   </select>
                 </div>
                 <div className="flex items-end">
-                  <button onClick={() => setFilters({ month: currentMonth(), category: '' })}
-                    className="btn-ghost text-sm py-3">Reset</button>
+                  <button onClick={handleResetAll} className="btn-ghost text-sm py-3">Reset all</button>
                 </div>
               </div>
             </div>
+
+            {/* Search + Advanced filters */}
+            <SearchFilterBar
+              search={search}
+              onSearchChange={(v) => { setSearch(v); setPage(1) }}
+              advanced={advanced}
+              onAdvancedChange={(v) => { setAdvanced((p) => ({ ...p, ...v })); setPage(1) }}
+              onReset={handleResetAll}
+            />
 
             {/* Summary cards */}
             <SummaryCards summary={summary} topCats={topCats} />
@@ -253,6 +302,10 @@ const Dashboard = () => {
                   <ExpenseCard key={expense._id} expense={expense}
                     onEdit={handleEdit} onDelete={handleDelete} />
                 ))}
+                <Pagination
+                  pagination={pagination}
+                  onPageChange={(p) => setPage(p)}
+                />
               </div>
             )}
           </div>
@@ -296,20 +349,17 @@ const Dashboard = () => {
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-xl text-ink-500 hover:bg-ink-100 transition-colors mr-3"
           >
-            {/* Hamburger icon */}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <div className="flex items-center gap-2">
-            <img
-              src="/favicon.png"
-              alt="Spendwise logo"
-              className="w-7 h-7 rounded-lg object-cover"
-            />
+          <div className="flex items-center gap-2 flex-1">
+            <img src="/favicon.png" alt="Spendwise logo" className="w-7 h-7 rounded-lg object-cover" />
             <span className="font-bold text-ink-800">Spendwise</span>
           </div>
+          {/* Dark mode toggle in mobile header */}
+          <DarkModeToggle />
         </header>
 
         {/* Scrollable content */}

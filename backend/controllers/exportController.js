@@ -3,13 +3,11 @@ import PDFDocument from 'pdfkit';
 import Expense from '../models/Expense.js';
 import User from '../models/User.js';
 
-// ── shared: build query & fetch expenses ────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────
 const fetchFiltered = async (userId, query) => {
   const { month, category } = query;
   const dbQuery = { userId };
-
   if (category) dbQuery.category = category;
-
   if (month) {
     const [year, m] = month.split('-').map(Number);
     if (!isNaN(year) && !isNaN(m) && m >= 1 && m <= 12) {
@@ -19,7 +17,6 @@ const fetchFiltered = async (userId, query) => {
       };
     }
   }
-
   return Expense.find(dbQuery).sort({ date: -1 });
 };
 
@@ -27,16 +24,14 @@ const fmtDate = (d) =>
   new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const fmtAmt = (n) =>
-  `Rs. ${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  `Rs.${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
-// ── CSV Export ──────────────────────────────────────────────────
-// GET /api/expenses/export/csv
+// ── CSV Export ───────────────────────────────────────────────────
 export const exportCSV = async (req, res) => {
   try {
     const expenses = await fetchFiltered(req.user._id, req.query);
-    if (!expenses.length) {
+    if (!expenses.length)
       return res.status(404).json({ message: 'No expenses found for the selected filters.' });
-    }
 
     const rows = expenses.map((e) => ({
       Date:        fmtDate(e.date),
@@ -48,7 +43,6 @@ export const exportCSV = async (req, res) => {
 
     const parser = new Parser({ fields: ['Date', 'Category', 'Amount', 'Description', 'Recurring'] });
     const csv    = parser.parse(rows);
-
     const filename = `spendwise-expenses-${req.query.month || 'all'}.csv`;
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -59,8 +53,7 @@ export const exportCSV = async (req, res) => {
   }
 };
 
-// ── PDF Export ──────────────────────────────────────────────────
-// GET /api/expenses/export/pdf
+// ── PDF Export ───────────────────────────────────────────────────
 export const exportPDF = async (req, res) => {
   try {
     const [expenses, user] = await Promise.all([
@@ -68,9 +61,8 @@ export const exportPDF = async (req, res) => {
       User.findById(req.user._id).select('name email'),
     ]);
 
-    if (!expenses.length) {
+    if (!expenses.length)
       return res.status(404).json({ message: 'No expenses found for the selected filters.' });
-    }
 
     const total     = expenses.reduce((s, e) => s + e.amount, 0);
     const byCat     = expenses.reduce((acc, e) => {
@@ -83,93 +75,180 @@ export const exportPDF = async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const doc    = new PDFDocument({ margin: 50, size: 'A4' });
+    const W      = doc.page.width   // 595
+    const LEFT   = 50
+    const RIGHT  = W - 50           // 545
+    const INNER  = RIGHT - LEFT     // 495
+
     doc.pipe(res);
 
-    // ── Header bar ──
-    doc.rect(0, 0, doc.page.width, 70).fill('#4a7c59');
-    doc.fontSize(22).fillColor('#ffffff').font('Helvetica-Bold')
-      .text('Spendwise', 50, 22);
+    // ══════════════════════════════════════════
+    // HEADER
+    // ══════════════════════════════════════════
+    doc.rect(0, 0, W, 72).fill('#4a7c59');
+    doc.fontSize(20).fillColor('#ffffff').font('Helvetica-Bold')
+       .text('Spendwise', LEFT, 20);
     doc.fontSize(10).fillColor('#c8dcd0').font('Helvetica')
-      .text('Expense Report', 50, 48);
+       .text('Expense Report', LEFT, 46);
+    // right-align export date in header
+    doc.fontSize(9).fillColor('#c8dcd0')
+       .text(`Exported: ${fmtDate(new Date())}`, 0, 28,
+             { align: 'right', width: W - 50 });
 
-    // ── Meta info ──
-    doc.fillColor('#0f0e0c').fontSize(10).font('Helvetica');
-    let y = 90;
-    doc.text(`Name:`,         50,  y).font('Helvetica-Bold').text(user.name,   130, y);
-    doc.font('Helvetica').text(`Email:`,        50, y + 16).font('Helvetica-Bold').text(user.email,  130, y + 16);
-    doc.font('Helvetica').text(`Period:`,       50, y + 32).font('Helvetica-Bold')
-      .text(req.query.month || 'All time', 130, y + 32);
-    doc.font('Helvetica').text(`Exported on:`,  50, y + 48).font('Helvetica-Bold')
-      .text(fmtDate(new Date()), 130, y + 48);
-    doc.font('Helvetica').text(`Total:`,        50, y + 64).font('Helvetica-Bold')
-      .fontSize(12).fillColor('#4a7c59').text(fmtAmt(total), 130, y + 64);
+    // ══════════════════════════════════════════
+    // META INFO BOX
+    // ══════════════════════════════════════════
+    let y = 84;
+    doc.rect(LEFT, y, INNER, 68).fill('#f5f4f0');
 
-    // ── Divider ──
-    doc.moveTo(50, y + 88).lineTo(545, y + 88).strokeColor('#e8e6df').lineWidth(1).stroke();
+    const metaRows = [
+      ['Name',   user.name],
+      ['Email',  user.email],
+      ['Period', req.query.month || 'All time'],
+      ['Total',  fmtAmt(total)],
+    ];
+    metaRows.forEach(([label, value], i) => {
+      const my = y + 8 + i * 14;
+      doc.fontSize(8).fillColor('#7a7670').font('Helvetica')
+         .text(label, LEFT + 10, my);
+      const isTotal = label === 'Total';
+      doc.fontSize(isTotal ? 10 : 9)
+         .fillColor(isTotal ? '#4a7c59' : '#0f0e0c')
+         .font(isTotal ? 'Helvetica-Bold' : 'Helvetica')
+         .text(value, LEFT + 70, my);
+    });
 
-    // ── Category Breakdown ──
-    y += 100;
-    doc.fontSize(12).fillColor('#0f0e0c').font('Helvetica-Bold').text('Category Breakdown', 50, y);
-    y += 18;
+    y += 78;
+
+    // ══════════════════════════════════════════
+    // CATEGORY BREAKDOWN
+    // ══════════════════════════════════════════
+    doc.fontSize(11).fillColor('#0f0e0c').font('Helvetica-Bold')
+       .text('Category Breakdown', LEFT, y);
+    y += 16;
+
+    // Column positions — fixed, no overlap
+    const COL_CAT  = LEFT          // category name  x=50,  width=120
+    const COL_BAR  = LEFT + 125    // bar start       x=175, width=240
+    const COL_AMT  = LEFT + 370    // amount          x=420, width=80
+    const COL_PCT  = LEFT + 455    // percent         x=505, width=40
+
+    const BAR_MAX  = 240
+    const BAR_H    = 10
 
     sortedCat.forEach(([cat, amt]) => {
-      const pct   = Math.round((amt / total) * 100);
-      const barW  = Math.round((amt / total) * 300);
-      doc.fontSize(9).font('Helvetica').fillColor('#4a4740').text(cat, 50, y + 3);
-      doc.rect(180, y, 300, 12).fillColor('#e8e6df').fill();
-      doc.rect(180, y, barW, 12).fillColor('#4a7c59').fill();
-      doc.fillColor('#0f0e0c').font('Helvetica-Bold')
-        .text(`${fmtAmt(amt)}  (${pct}%)`, 490, y + 2, { align: 'right', width: 55 });
-      y += 20;
-    });
+      const pct  = Math.round((amt / total) * 100)
+      const barW = Math.round((amt / total) * BAR_MAX)
 
-    // ── Divider ──
-    doc.moveTo(50, y + 6).lineTo(545, y + 6).strokeColor('#e8e6df').lineWidth(1).stroke();
-    y += 20;
+      // Category label — fixed width so it never bleeds into bar
+      doc.fontSize(8.5).font('Helvetica').fillColor('#2e2c27')
+         .text(cat, COL_CAT, y + 1, { width: 120, ellipsis: true })
 
-    // ── Expense Table header ──
-    doc.fontSize(12).fillColor('#0f0e0c').font('Helvetica-Bold').text('All Expenses', 50, y);
-    y += 18;
+      // Background bar
+      doc.rect(COL_BAR, y, BAR_MAX, BAR_H).fill('#e8e6df')
+      // Filled bar
+      if (barW > 0) doc.rect(COL_BAR, y, barW, BAR_H).fill('#4a7c59')
 
-    // Table header row
-    doc.rect(50, y, 495, 20).fillColor('#4a7c59').fill();
-    doc.fontSize(9).fillColor('#ffffff').font('Helvetica-Bold');
-    doc.text('Date',        55,  y + 5);
-    doc.text('Category',    130, y + 5);
-    doc.text('Description', 255, y + 5);
-    doc.text('Amount',      460, y + 5, { align: 'right', width: 80 });
-    y += 20;
+      // Amount — right-aligned in its column
+      doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f0e0c')
+         .text(fmtAmt(amt), COL_AMT, y + 1, { width: 80, align: 'right' })
 
-    // Table rows
-    expenses.forEach((e, i) => {
-      if (y > doc.page.height - 80) {
-        doc.addPage();
-        y = 50;
-      }
-      const bg = i % 2 === 0 ? '#f5f4f0' : '#ffffff';
-      doc.rect(50, y, 495, 18).fillColor(bg).fill();
-      doc.fontSize(8).fillColor('#0f0e0c').font('Helvetica');
-      doc.text(fmtDate(e.date),            55,  y + 4);
-      doc.text(e.category,                 130, y + 4);
-      doc.text((e.description || '-').substring(0, 28), 255, y + 4);
-      doc.font('Helvetica-Bold')
-        .text(fmtAmt(e.amount),            460, y + 4, { align: 'right', width: 80 });
-      y += 18;
-    });
+      // Percent — right-aligned
+      doc.fontSize(8).font('Helvetica').fillColor('#7a7670')
+         .text(`(${pct}%)`, COL_PCT, y + 1, { width: 38, align: 'right' })
 
-    // ── Footer ──
-    const footerY = doc.page.height - 40;
-    doc.rect(0, footerY, doc.page.width, 40).fillColor('#f5f4f0').fill();
-    doc.fontSize(8).fillColor('#7a7670').font('Helvetica')
-      .text(`Generated by Spendwise • ${new Date().toISOString()}`, 50, footerY + 14,
-        { align: 'center', width: doc.page.width - 100 });
+      y += 18
+    })
 
-    doc.end();
-  } catch (err) {
-    console.error(err);
-    if (!res.headersSent) {
-      return res.status(500).json({ message: err.message || 'Failed to export PDF' });
+    // Divider
+    y += 4
+    doc.moveTo(LEFT, y).lineTo(RIGHT, y).strokeColor('#e8e6df').lineWidth(0.5).stroke()
+    y += 14
+
+    // ══════════════════════════════════════════
+    // EXPENSE TABLE
+    // ══════════════════════════════════════════
+    doc.fontSize(11).fillColor('#0f0e0c').font('Helvetica-Bold')
+       .text('All Expenses', LEFT, y)
+    y += 14
+
+    // Table columns
+    const T = {
+      date: { x: LEFT,       w: 75  },
+      cat:  { x: LEFT + 78,  w: 95  },
+      desc: { x: LEFT + 176, w: 185 },
+      amt:  { x: LEFT + 364, w: 130 },  // right-aligned
     }
+
+    // Header row
+    doc.rect(LEFT, y, INNER, 18).fill('#4a7c59')
+    doc.fontSize(8.5).fillColor('#ffffff').font('Helvetica-Bold')
+    doc.text('Date',        T.date.x + 3, y + 4, { width: T.date.w })
+    doc.text('Category',    T.cat.x  + 3, y + 4, { width: T.cat.w  })
+    doc.text('Description', T.desc.x + 3, y + 4, { width: T.desc.w })
+    doc.text('Amount',      T.amt.x,      y + 4, { width: T.amt.w, align: 'right' })
+    y += 18
+
+    // Data rows
+    expenses.forEach((e, i) => {
+      // New page if near bottom
+      if (y > doc.page.height - 70) {
+        doc.addPage()
+        y = 50
+
+        // Re-draw header on new page
+        doc.rect(LEFT, y, INNER, 18).fill('#4a7c59')
+        doc.fontSize(8.5).fillColor('#ffffff').font('Helvetica-Bold')
+        doc.text('Date',        T.date.x + 3, y + 4, { width: T.date.w })
+        doc.text('Category',    T.cat.x  + 3, y + 4, { width: T.cat.w  })
+        doc.text('Description', T.desc.x + 3, y + 4, { width: T.desc.w })
+        doc.text('Amount',      T.amt.x,      y + 4, { width: T.amt.w, align: 'right' })
+        y += 18
+      }
+
+      const rowH = 17
+      const bg   = i % 2 === 0 ? '#f9f8f6' : '#ffffff'
+      doc.rect(LEFT, y, INNER, rowH).fill(bg)
+
+      // Left border accent for recurring
+      if (e.isRecurring) {
+        doc.rect(LEFT, y, 3, rowH).fill('#4a7c59')
+      }
+
+      doc.fontSize(8).fillColor('#0f0e0c').font('Helvetica')
+      doc.text(fmtDate(e.date),              T.date.x + 3, y + 4, { width: T.date.w })
+      doc.text(e.category,                   T.cat.x  + 3, y + 4, { width: T.cat.w,  ellipsis: true })
+      doc.text(e.description || '-',         T.desc.x + 3, y + 4, { width: T.desc.w, ellipsis: true })
+      doc.font('Helvetica-Bold')
+         .text(fmtAmt(e.amount),             T.amt.x,      y + 4, { width: T.amt.w,  align: 'right' })
+
+      y += rowH
+    })
+
+    // Total row
+    doc.rect(LEFT, y, INNER, 18).fill('#4a7c59')
+    doc.fontSize(9).fillColor('#ffffff').font('Helvetica-Bold')
+    doc.text('TOTAL', T.desc.x + 3, y + 4, { width: T.desc.w })
+    doc.text(fmtAmt(total), T.amt.x, y + 4, { width: T.amt.w, align: 'right' })
+    y += 18
+
+    // ══════════════════════════════════════════
+    // FOOTER
+    // ══════════════════════════════════════════
+    const footerY = doc.page.height - 36
+    doc.rect(0, footerY, W, 36).fill('#f5f4f0')
+    doc.fontSize(7.5).fillColor('#9ca3af').font('Helvetica')
+       .text(
+         `Generated by Spendwise  •  ${new Date().toLocaleString('en-IN')}  •  ${expenses.length} transaction(s)`,
+         0, footerY + 12,
+         { align: 'center', width: W }
+       )
+
+    doc.end()
+  } catch (err) {
+    console.error(err)
+    if (!res.headersSent)
+      return res.status(500).json({ message: err.message || 'Failed to export PDF' })
   }
-};
+}
