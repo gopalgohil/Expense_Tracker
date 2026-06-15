@@ -15,10 +15,10 @@ const AnimatedRoutes = () => {
   const location = useLocation()
   return (
     <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+      <Routes location={location} key={location.pathname.split('/')[1] || 'root'}>
         <Route path="/login"     element={<PageTransition><Login /></PageTransition>} />
         <Route path="/register"  element={<PageTransition><Register /></PageTransition>} />
-        <Route path="/dashboard" element={
+        <Route path="/dashboard/*" element={
           <ProtectedRoute>
             <PageTransition><Dashboard /></PageTransition>
           </ProtectedRoute>

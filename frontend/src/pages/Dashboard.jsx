@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useExpenses }      from '../hooks/useExpenses'
@@ -53,7 +54,16 @@ const Dashboard = () => {
   const { status, fetchBudgets, refreshStatus } = useBudgets()
   const { summary, topCats, dailyData, loading: analyticsLoading, error: analyticsError, fetchAnalytics } = useAnalytics()
 
-  const [activeSection, setActiveSection] = useState('dashboard')
+  const location = useLocation()
+  const navigate = useNavigate()
+  const activeSection = (() => {
+    const path = location.pathname.replace(/\/$/, '')
+    if (path === '/dashboard/add-expense') return 'add-expense'
+    if (path === '/dashboard/budgets')     return 'budgets'
+    if (path === '/dashboard/charts')      return 'charts'
+    if (path === '/dashboard/settings')    return 'settings'
+    return 'dashboard'
+  })()
   const [sidebarOpen,   setSidebarOpen]   = useState(false)
   const [filters,    setFilters]    = useState({ month: currentMonth(), category: '' })
   const [search,     setSearch]     = useState('')
@@ -135,7 +145,7 @@ const Dashboard = () => {
         }, 3000)
       }
       await refreshAllData()
-      setActiveSection('dashboard')
+      navigate('/dashboard')
       setPage(1)
     } else {
       toast.error(result.message || 'Failed to add expense')
@@ -218,7 +228,7 @@ const Dashboard = () => {
               >
                 <ExpenseForm
                   onSubmit={handleAdd}
-                  onCancel={() => setActiveSection('dashboard')}
+                  onCancel={() => navigate('/dashboard')}
                   loading={addLoading}
                 />
               </motion.div>
@@ -274,7 +284,7 @@ const Dashboard = () => {
                 <div className="flex items-center gap-2">
                   <ExportButtons filters={filters} />
                   <HoverButton
-                    onClick={() => setActiveSection('add-expense')}
+                    onClick={() => navigate('/dashboard/add-expense')}
                     className="btn-primary flex items-center gap-1.5 text-sm"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,7 +415,7 @@ const Dashboard = () => {
                       ? 'Try adjusting your filters'
                       : 'Add your first expense to get started'}
                   </p>
-                  <HoverButton onClick={() => setActiveSection('add-expense')}
+                  <HoverButton onClick={() => navigate('/dashboard/add-expense')}
                     className="btn-primary mt-4 text-sm">Add expense</HoverButton>
                 </div>
               </FadeInSection>
@@ -460,7 +470,7 @@ const Dashboard = () => {
       `}>
         <Sidebar
           active={activeSection}
-          setActive={setActiveSection}
+          setActive={(section) => navigate(section === 'dashboard' ? '/dashboard' : `/dashboard/${section}`)}
           onClose={() => setSidebarOpen(false)}
         />
       </aside>
