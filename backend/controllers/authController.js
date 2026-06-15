@@ -35,6 +35,7 @@ const sendToken = (req, res, user, statusCode) => {
     email:    user.email,
     avatar:   user.avatar   || null,
     currency: user.currency || 'INR',
+    token,
   });
 };
 

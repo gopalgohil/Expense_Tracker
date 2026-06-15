@@ -18,15 +18,17 @@ export const AuthProvider = ({ children }) => {
     currency: data.currency || 'INR',
   })
 
-  // Restore session from cookie on refresh — fetch profile from API
+  // Restore session from cookie/localStorage on refresh — fetch profile from API
   useEffect(() => {
-    // Remove legacy auth keys from localStorage
+    // Remove legacy user object from localStorage
     localStorage.removeItem('user')
-    localStorage.removeItem('token')
 
     getMe()
       .then(({ data }) => setUser(normalizeUser(data)))
-      .catch(() => setUser(null))
+      .catch(() => {
+        setUser(null)
+        localStorage.removeItem('token') // clear invalid/expired token fallback
+      })
       .finally(() => setInitializing(false))
   }, [])
 
@@ -40,6 +42,9 @@ export const AuthProvider = ({ children }) => {
     setLoading(true)
     try {
       const { data } = await apiLogin({ email, password })
+      if (data.token) {
+        localStorage.setItem('token', data.token)
+      }
       syncUser(data)
       return { success: true }
     } catch (err) {
@@ -80,6 +85,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await apiLogout()
     } catch (_) {}
+    localStorage.removeItem('token')
     setUser(null)
   }
 
