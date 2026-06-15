@@ -36,10 +36,18 @@ export const AuthProvider = ({ children }) => {
     return u
   }
 
+  const hashPassword = async (pwd) => {
+    const utf8 = new TextEncoder().encode(pwd)
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', utf8)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+  }
+
   const login = async (email, password) => {
     setLoading(true)
     try {
-      const { data } = await apiLogin({ email, password })
+      const hashedPassword = await hashPassword(password)
+      const { data } = await apiLogin({ email, password: hashedPassword })
       syncUser(data)
       return { success: true }
     } catch (err) {
@@ -50,7 +58,8 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password) => {
     setLoading(true)
     try {
-      await apiRegister({ name, email, password })
+      const hashedPassword = await hashPassword(password)
+      await apiRegister({ name, email, password: hashedPassword })
       return { success: true }
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Registration failed' }

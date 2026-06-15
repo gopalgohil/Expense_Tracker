@@ -73,7 +73,7 @@ export const loginUser = async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ message: 'Please provide email and password' });
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     if (!user)
       return res.status(401).json({ message: 'No account found with this email. Please register.' });
 
