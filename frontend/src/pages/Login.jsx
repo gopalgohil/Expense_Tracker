@@ -132,6 +132,9 @@ const Login = () => {
                   onChange={handleChange}
                   onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
                   autoComplete="current-password"
+                  onCopy={(e) => e.preventDefault()}
+                  onPaste={(e) => e.preventDefault()}
+                  onCut={(e) => e.preventDefault()}
                   style={{
                     paddingRight: 44,
                     border: errors.password ? '1.5px solid #ef4444' : undefined,

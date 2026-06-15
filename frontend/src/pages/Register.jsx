@@ -155,6 +155,9 @@ const Register = () => {
                   placeholder="Min. 6 characters"
                   value={form.password} onChange={handleChange}
                   autoComplete="new-password"
+                  onCopy={(e) => e.preventDefault()}
+                  onPaste={(e) => e.preventDefault()}
+                  onCut={(e) => e.preventDefault()}
                   className={`input-field ${errors.password ? 'border-red-400' : ''}`}
                   style={{ paddingRight: 44 }}
                 />
@@ -186,6 +189,9 @@ const Register = () => {
                   placeholder="Re-enter your password"
                   value={form.confirm} onChange={handleChange}
                   autoComplete="new-password"
+                  onCopy={(e) => e.preventDefault()}
+                  onPaste={(e) => e.preventDefault()}
+                  onCut={(e) => e.preventDefault()}
                   className={`input-field ${errors.confirm ? 'border-red-400' : ''}`}
                   style={{ paddingRight: 44 }}
                 />
