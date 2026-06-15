@@ -47,16 +47,9 @@ export const registerUser = async (req, res) => {
 
     // Email Validation Rules
     const trimmedEmail = email.trim();
-    if (/\s/.test(trimmedEmail)) {
-      return res.status(400).json({ message: 'Email cannot contain spaces.' });
-    }
-    const atCount = (trimmedEmail.match(/@/g) || []).length;
-    if (atCount !== 1) {
-      return res.status(400).json({ message: 'Email must contain exactly one "@" symbol.' });
-    }
-    const emailRegex = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.(com|in)$/i;
+    const emailRegex = /^[^\s@]+@gmail\.(com|in)$/i;
     if (!emailRegex.test(trimmedEmail)) {
-      return res.status(400).json({ message: 'Email must follow a valid format (e.g. user@gmail.com, user@yahoo.in, user@company.co.in) and end with .com or .in.' });
+      return res.status(400).json({ message: 'Please enter a valid Gmail address.' });
     }
 
     const userExists = await User.findOne({ email: trimmedEmail });

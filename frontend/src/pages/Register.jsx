@@ -50,24 +50,9 @@ const Register = () => {
     if (!email || !email.trim()) {
       return 'Email is required.'
     }
-    if (/\s/.test(email)) {
-      return 'Email cannot contain spaces.'
-    }
-    const atCount = (email.match(/@/g) || []).length
-    if (atCount !== 1) {
-      return 'Email must contain exactly one "@" symbol.'
-    }
-    const emailRegex = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.(com|in)$/i
-    if (!emailRegex.test(email)) {
-      const parts = email.split('@')
-      const domain = parts[1] || ''
-      if (!domain) {
-        return 'Email must contain a domain name after "@".'
-      }
-      if (!domain.toLowerCase().endsWith('.com') && !domain.toLowerCase().endsWith('.in')) {
-        return 'Email must end with a valid extension (e.g. .com or .in).'
-      }
-      return 'Email must follow a valid format (e.g. user@gmail.com, user@yahoo.in).'
+    const emailRegex = /^[^\s@]+@gmail\.(com|in)$/i
+    if (!emailRegex.test(email.trim())) {
+      return 'Please enter a valid Gmail address.'
     }
     return null
   }
