@@ -6,17 +6,7 @@ const api = axios.create({
   withCredentials:  true,   // send cookies with every request
 })
 
-// Request interceptor to attach Bearer token fallback for cross-site cookie restrictions
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
+// Auth via HttpOnly jwt cookie — profile fetched from /auth/me, kept in memory only
 
 // Auto-logout on 401
 const SKIP_REDIRECT = ['/user/delete-account', '/user/change-password', '/auth/me', '/auth/login', '/auth/register']
@@ -30,7 +20,7 @@ api.interceptors.response.use(
     const onAuthPage = pathname === '/login' || pathname === '/register'
 
     if (err.response?.status === 401 && !isSkipped && !onAuthPage) {
-      localStorage.removeItem('token')
+      // No localStorage to clear — cookies are cleared by server on logout
       window.location.href = '/login'
     }
     return Promise.reject(err)
