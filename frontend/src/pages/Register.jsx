@@ -46,10 +46,39 @@ const Register = () => {
     setErrors((p) => ({ ...p, [e.target.name]: '' }))
   }
 
+  const validateEmail = (email) => {
+    if (!email || !email.trim()) {
+      return 'Email is required.'
+    }
+    if (/\s/.test(email)) {
+      return 'Email cannot contain spaces.'
+    }
+    const atCount = (email.match(/@/g) || []).length
+    if (atCount !== 1) {
+      return 'Email must contain exactly one "@" symbol.'
+    }
+    const emailRegex = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.(com|in)$/i
+    if (!emailRegex.test(email)) {
+      const parts = email.split('@')
+      const domain = parts[1] || ''
+      if (!domain) {
+        return 'Email must contain a domain name after "@".'
+      }
+      if (!domain.toLowerCase().endsWith('.com') && !domain.toLowerCase().endsWith('.in')) {
+        return 'Email must end with a valid extension (e.g. .com or .in).'
+      }
+      return 'Email must follow a valid format (e.g. user@gmail.com, user@yahoo.in).'
+    }
+    return null
+  }
+
   const validate = () => {
     const e = {}
     if (!form.name.trim())            e.name     = 'Name is required.'
-    if (!form.email.trim())           e.email    = 'Email is required.'
+    
+    const emailError = validateEmail(form.email)
+    if (emailError)                   e.email    = emailError
+
     if (!form.password)               e.password = 'Password is required.'
     else if (form.password.length < 6) e.password = 'Password must be at least 6 characters.'
     if (!form.confirm)                e.confirm  = 'Please confirm your password.'

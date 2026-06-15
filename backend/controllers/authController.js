@@ -45,11 +45,25 @@ export const registerUser = async (req, res) => {
     if (!name || !email || !password)
       return res.status(400).json({ message: 'Please provide name, email, and password' });
 
-    const userExists = await User.findOne({ email });
+    // Email Validation Rules
+    const trimmedEmail = email.trim();
+    if (/\s/.test(trimmedEmail)) {
+      return res.status(400).json({ message: 'Email cannot contain spaces.' });
+    }
+    const atCount = (trimmedEmail.match(/@/g) || []).length;
+    if (atCount !== 1) {
+      return res.status(400).json({ message: 'Email must contain exactly one "@" symbol.' });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.(com|in)$/i;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({ message: 'Email must follow a valid format (e.g. user@gmail.com, user@yahoo.in, user@company.co.in) and end with .com or .in.' });
+    }
+
+    const userExists = await User.findOne({ email: trimmedEmail });
     if (userExists)
       return res.status(400).json({ message: 'User already exists with this email' });
 
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ name, email: trimmedEmail, password });
     if (!user) return res.status(400).json({ message: 'Invalid user data provided' });
 
     return sendToken(req, res, user, 201);
