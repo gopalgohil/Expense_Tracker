@@ -10,9 +10,11 @@ export const useAnalytics = () => {
   const [topCats,   setTopCats]   = useState([])
   const [dailyData, setDailyData] = useState([])
   const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState(null)
 
   const fetchAnalytics = useCallback(async (month) => {
     setLoading(true)
+    setError(null)
     try {
       const [cmp, top, daily] = await Promise.all([
         getMonthlyCompare({ month }),
@@ -22,12 +24,13 @@ export const useAnalytics = () => {
       setSummary(cmp.data)
       setTopCats(top.data)
       setDailyData(daily.data)
-    } catch (_) {
-      // fail silently — analytics is additive
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+      setError(err.response?.data?.message || 'Failed to fetch analytics')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  return { summary, topCats, dailyData, loading, fetchAnalytics }
+  return { summary, topCats, dailyData, loading, error, fetchAnalytics }
 }

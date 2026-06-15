@@ -51,7 +51,7 @@ const Dashboard = () => {
     fetchExpenses, addExpense, editExpense, removeExpense, restoreExpense,
   } = useExpenses()
   const { status, fetchBudgets, refreshStatus } = useBudgets()
-  const { summary, topCats, dailyData, loading: analyticsLoading, fetchAnalytics } = useAnalytics()
+  const { summary, topCats, dailyData, loading: analyticsLoading, error: analyticsError, fetchAnalytics } = useAnalytics()
 
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarOpen,   setSidebarOpen]   = useState(false)
@@ -316,6 +316,20 @@ const Dashboard = () => {
 
             {analyticsLoading ? (
               <SummaryCardsSkeleton />
+            ) : analyticsError ? (
+              <FadeInSection delay={0.1}>
+                <div className="card p-6 text-center flex flex-col items-center justify-center border border-dashed border-ink-200">
+                  <p className="text-sm text-coral-strong font-medium flex items-center gap-2">
+                    <svg className="w-5 h-5 text-coral" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Failed to load analytics: {analyticsError}
+                  </p>
+                  <HoverButton onClick={() => fetchAnalytics(filters.month)} className="btn-ghost mt-3 text-xs py-1.5 px-4">
+                    Try again
+                  </HoverButton>
+                </div>
+              </FadeInSection>
             ) : (
               <FadeInSection delay={0.1}>
                 <SummaryCards summary={summary} topCats={topCats} />
@@ -336,7 +350,7 @@ const Dashboard = () => {
             )}
             {analyticsLoading && status.length === 0 && <BudgetSkeleton />}
 
-            {(dailyData.length > 0 || summary) && (
+            {(dailyData.length > 0 || summary) && !analyticsError && (
               <FadeInSection delay={0.16}>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {analyticsLoading ? (
