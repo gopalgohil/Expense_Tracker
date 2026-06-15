@@ -72,6 +72,15 @@ const Dashboard = () => {
     return p
   }, [filters, search, advanced, page])
 
+  // Helper to refresh all dashboard data (expenses, budgets, and analytics cards/charts)
+  const refreshAllData = useCallback(async () => {
+    await Promise.all([
+      fetchExpenses(buildParams()),
+      fetchBudgets(filters.month),
+      fetchAnalytics(filters.month),
+    ])
+  }, [fetchExpenses, buildParams, fetchBudgets, fetchAnalytics, filters.month])
+
   // Fetch expenses whenever any filter/search/sort/page changes
   useEffect(() => {
     fetchExpenses(buildParams())
@@ -125,7 +134,7 @@ const Dashboard = () => {
           })
         }, 3000)
       }
-      await refreshStatus(filters.month)
+      await refreshAllData()
       setActiveSection('dashboard')
       setPage(1)
     } else {
@@ -144,14 +153,16 @@ const Dashboard = () => {
 
   const handleEdit = async (id, formData) => {
     const result = await editExpense(id, formData)
-    if (result.success) await refreshStatus(filters.month)
+    if (result.success) {
+      await refreshAllData()
+    }
     return result
   }
 
   const handleDelete = async (id) => {
     const result = await removeExpense(id)
     if (result.success) {
-      await refreshStatus(filters.month)
+      await refreshAllData()
       toast(
         (t) => (
           <div className="flex items-center gap-3">
@@ -162,7 +173,7 @@ const Dashboard = () => {
                 const restored = await restoreExpense(result.deleted)
                 if (restored.success) {
                   toast.success('Expense restored!')
-                  await refreshStatus(filters.month)
+                  await refreshAllData()
                 } else {
                   toast.error(restored.message || 'Could not restore')
                 }
