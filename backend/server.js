@@ -18,8 +18,30 @@ startRecurringJob();
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+];
+
+const clientUrl = process.env.CLIENT_URL;
+if (clientUrl) {
+  const cleanedUrl = clientUrl.trim();
+  if (cleanedUrl.startsWith('http://') || cleanedUrl.startsWith('https://')) {
+    allowedOrigins.push(cleanedUrl);
+    allowedOrigins.push(cleanedUrl.replace(/\/$/, ''));
+  } else {
+    allowedOrigins.push(`https://${cleanedUrl}`);
+    allowedOrigins.push(`http://${cleanedUrl}`);
+    allowedOrigins.push(`https://${cleanedUrl}`.replace(/\/$/, ''));
+    allowedOrigins.push(`http://${cleanedUrl}`.replace(/\/$/, ''));
+  }
+}
+
 app.use(cors({
-  origin:      process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: allowedOrigins,
   credentials: true,    // required for cookies
 }));
 app.use(express.json());

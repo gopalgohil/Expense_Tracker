@@ -1,6 +1,7 @@
 import User    from '../models/User.js';
 import Expense from '../models/Expense.js';
 import Budget  from '../models/Budget.js';
+import { getCookieOptions } from './authController.js';
 
 const safeUser = (u) => ({
   _id:      u._id,
@@ -90,11 +91,8 @@ export const deleteAccount = async (req, res) => {
 
     // Clear auth cookies
     const clearOpts = {
-      httpOnly: true,
-      secure:   process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      ...getCookieOptions(req),
       expires:  new Date(0),
-      path:     '/',
     };
     res.cookie('jwt', '', clearOpts);
     res.cookie('user_id', '', clearOpts);
