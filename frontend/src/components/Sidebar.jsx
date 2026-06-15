@@ -81,14 +81,17 @@ const Sidebar = ({ active, setActive, onClose }) => {
     <div className="flex flex-col h-full bg-white border-r border-ink-100 w-64">
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-ink-100 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
+        <button
+          onClick={() => handleNav('dashboard')}
+          className="flex items-center gap-2.5 hover:opacity-80 transition-opacity text-left focus:outline-none"
+        >
           <img
             src="/favicon.png"
             alt="Spendwise logo"
             className="w-8 h-8 rounded-xl object-cover"
           />
           <span className="font-bold text-ink-800 text-lg tracking-tight">Spendwise</span>
-        </div>
+        </button>
       </div>
 
       {/* Nav items */}
