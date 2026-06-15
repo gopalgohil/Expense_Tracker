@@ -8,8 +8,16 @@ const Login = () => {
   const [errors, setErrors]     = useState({})
   const [showPass, setShowPass] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const { login, user }         = useAuth()
+  const { login, user, initializing } = useAuth()
   const navigate                = useNavigate()
+
+  if (initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ink-50">
+        <div className="w-8 h-8 border-2 border-sage border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   // Already logged in → go to dashboard
   if (user) { navigate('/dashboard', { replace: true }); return null }

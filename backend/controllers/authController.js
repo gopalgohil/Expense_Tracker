@@ -16,10 +16,11 @@ const cookieOptions = {
 const sendToken = (res, user, statusCode) => {
   const token = generateToken(user._id);
 
-  // Token stored in HttpOnly cookie — JS cannot read it (XSS safe)
+  // Auth cookies only — no profile data in cookies or localStorage
   res.cookie('jwt', token, cookieOptions);
+  res.cookie('user_id', user._id.toString(), cookieOptions);
 
-  // Return user display info in response body — frontend saves to localStorage
+  // Profile returned in body for in-memory React state only
   return res.status(statusCode).json({
     _id:      user._id,
     name:     user.name,
@@ -72,15 +73,19 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// POST /api/auth/logout  — clear the cookie
+// POST /api/auth/logout — clear auth cookies
 export const logoutUser = (req, res) => {
-  res.cookie('jwt', '', {
+  const clearOpts = {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     expires:  new Date(0),
     path:     '/',
-  });
+  };
+  res.cookie('jwt', '', clearOpts);
+  res.cookie('user_id', '', clearOpts);
+  // Legacy cookie — clear if present from older sessions
+  res.cookie('user_info', '', { ...clearOpts, httpOnly: false });
   return res.status(200).json({ message: 'Logged out successfully' });
 };
 
@@ -113,15 +118,6 @@ export const updateAvatar = async (req, res) => {
       return res.status(400).json({ message: 'Image too large. Please use an image under 1MB.' });
 
     const user = await User.findByIdAndUpdate(req.user._id, { avatar }, { new: true });
-
-    // Refresh user_info cookie with updated avatar
-    res.cookie('user_info', JSON.stringify({
-      _id:      user._id,
-      name:     user.name,
-      email:    user.email,
-      avatar:   user.avatar,
-      currency: user.currency || 'INR',
-    }), { ...cookieOptions, httpOnly: false });
 
     return res.status(200).json({
       _id:      user._id,

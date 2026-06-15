@@ -1,5 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 import ExpenseForm from './ExpenseForm'
+import { HoverIcon } from './animations/HoverButton'
+import ScaleModal from './animations/ScaleModal'
 
 const COLORS = {
   'Food & Dining': 'bg-amber-soft text-amber-strong',
@@ -23,29 +27,42 @@ const INTERVAL_LABEL = {
 const fmt = (dateStr) =>
   new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
-const ExpenseCard = ({ expense, onEdit, onDelete }) => {
+const ExpenseCard = ({ expense, onEdit, onDelete, isNew = false }) => {
   const [editing,   setEditing]   = useState(false)
   const [deleting,  setDeleting]  = useState(false)
   const [saving,    setSaving]    = useState(false)
   const [stopping,  setStopping]  = useState(false)
+  const [highlight, setHighlight] = useState(isNew)
+
+  useEffect(() => {
+    if (!isNew) return undefined
+    setHighlight(true)
+    const t = setTimeout(() => setHighlight(false), 3000)
+    return () => clearTimeout(t)
+  }, [isNew, expense._id])
 
   const handleEdit = async (formData) => {
     setSaving(true)
     const result = await onEdit(expense._id, formData)
     setSaving(false)
-    if (result.success) setEditing(false)
+    if (result.success) {
+      toast.success('Expense updated!')
+      setEditing(false)
+    } else {
+      toast.error(result.message || 'Failed to update expense')
+    }
     return result
   }
 
   const handleDelete = async () => {
     setDeleting(true)
     await onDelete(expense._id)
+    setDeleting(false)
   }
 
-  // Stop recurrence — sends isRecurring: false
   const handleStopRecurring = async () => {
     setStopping(true)
-    await onEdit(expense._id, {
+    const result = await onEdit(expense._id, {
       amount:      expense.amount,
       category:    expense.category,
       date:        expense.date.split('T')[0],
@@ -53,28 +70,41 @@ const ExpenseCard = ({ expense, onEdit, onDelete }) => {
       isRecurring: false,
     })
     setStopping(false)
+    if (result.success) toast.success('Recurrence stopped')
   }
 
   if (editing) {
     return (
-      <div className="card p-4">
-        <p className="label mb-3">Edit expense</p>
-        <ExpenseForm
-          initialData={expense}
-          onSubmit={handleEdit}
-          onCancel={() => setEditing(false)}
-          loading={saving}
-        />
-      </div>
+      <>
+        <motion.div layout className="card p-4 opacity-50 pointer-events-none">
+          <p className="text-sm text-ink-400 italic">Editing…</p>
+        </motion.div>
+        <ScaleModal open={editing} onClose={() => setEditing(false)} maxWidth="max-w-lg">
+          <div className="p-6">
+            <p className="label mb-3">Edit expense</p>
+            <ExpenseForm
+              initialData={expense}
+              onSubmit={handleEdit}
+              onCancel={() => setEditing(false)}
+              loading={saving}
+            />
+          </div>
+        </ScaleModal>
+      </>
     )
   }
 
   return (
-    <div className={`card p-4 hover:shadow-lift transition-shadow duration-200
-      ${expense.isRecurring ? 'border-l-4 border-l-sage' : ''}`}>
+    <motion.div
+      layout
+      className={`card p-4 transition-all duration-300
+        ${expense.isRecurring ? 'border-l-4 border-l-sage' : ''}
+        ${highlight ? 'ring-2 ring-green-400/70 bg-green-50/60 dark:bg-green-900/20' : ''}`}
+      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(15,14,12,0.10)' }}
+      transition={{ duration: 0.2 }}
+    >
       <div className="flex items-start justify-between gap-4">
 
-        {/* Left side */}
         <div className="flex items-start gap-3 min-w-0 flex-1">
           <span className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0
             ${COLORS[expense.category] || COLORS['Other']}`}>
@@ -85,7 +115,6 @@ const ExpenseCard = ({ expense, onEdit, onDelete }) => {
               <p className="text-sm text-ink-600 truncate">
                 {expense.description || <span className="text-ink-300 italic">No note</span>}
               </p>
-              {/* Recurring badge */}
               {expense.isRecurring && (
                 <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5
                   bg-sage-light text-sage rounded-full whitespace-nowrap flex-shrink-0">
@@ -98,7 +127,6 @@ const ExpenseCard = ({ expense, onEdit, onDelete }) => {
               )}
             </div>
             <p className="text-xs text-ink-400 mt-0.5">{fmt(expense.date)}</p>
-            {/* Next due date */}
             {expense.isRecurring && expense.nextDueDate && (
               <p className="text-xs text-sage mt-0.5">
                 Next: {fmt(expense.nextDueDate)}
@@ -106,47 +134,43 @@ const ExpenseCard = ({ expense, onEdit, onDelete }) => {
             )}
           </div>
         </div>
-        
-        {/* Right side */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="font-mono font-semibold text-ink-800 text-sm">
+
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <span className="font-mono font-semibold text-ink-800 text-sm mr-1">
             ₹{Number(expense.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </span>
 
-          {/* Stop recurrence button */}
           {expense.isRecurring && (
-            <button onClick={handleStopRecurring} disabled={stopping}
+            <HoverIcon onClick={handleStopRecurring} disabled={stopping}
               className="p-1.5 text-ink-400 hover:text-amber-strong hover:bg-amber-soft rounded-lg transition-colors disabled:opacity-50"
               title="Stop recurring">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <rect x="6" y="6" width="12" height="12" rx="1"
                   strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </button>
+            </HoverIcon>
           )}
 
-          {/* Edit */}
-          <button onClick={() => setEditing(true)}
+          <HoverIcon onClick={() => setEditing(true)}
             className="p-1.5 text-ink-400 hover:text-sage hover:bg-sage-light rounded-lg transition-colors"
             title="Edit">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-          </button>
+          </HoverIcon>
 
-          {/* Delete */}
-          <button onClick={handleDelete} disabled={deleting}
+          <HoverIcon onClick={handleDelete} disabled={deleting}
             className="p-1.5 text-ink-400 hover:text-coral hover:bg-coral-soft rounded-lg transition-colors disabled:opacity-50"
             title="Delete">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-          </button>
+          </HoverIcon>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

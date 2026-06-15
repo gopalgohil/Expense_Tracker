@@ -46,7 +46,8 @@ export const useExpenses = () => {
       const { data } = await apiCreate(expenseData)
       setExpenses((prev) => [data, ...prev])
       setAllExpenses((prev) => [data, ...prev])
-      return { success: true }
+      setPagination((p) => ({ ...p, total: p.total + 1 }))
+      return { success: true, data }
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Failed to add expense' }
     }
@@ -57,26 +58,42 @@ export const useExpenses = () => {
       const { data } = await apiUpdate(id, expenseData)
       setExpenses((prev) => prev.map((e) => (e._id === id ? data : e)))
       setAllExpenses((prev) => prev.map((e) => (e._id === id ? data : e)))
-      return { success: true }
+      return { success: true, data }
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Failed to update expense' }
     }
   }
 
   const removeExpense = async (id) => {
+    const deleted = expenses.find((e) => e._id === id) || allExpenses.find((e) => e._id === id)
     try {
       await apiDelete(id)
       setExpenses((prev) => prev.filter((e) => e._id !== id))
       setAllExpenses((prev) => prev.filter((e) => e._id !== id))
-      return { success: true }
+      setPagination((p) => ({ ...p, total: Math.max(0, p.total - 1) }))
+      return { success: true, deleted }
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Failed to delete expense' }
+    }
+  }
+
+  const restoreExpense = async (expense) => {
+    if (!expense) return { success: false, message: 'Nothing to restore' }
+    const { _id, __v, createdAt, updatedAt, ...payload } = expense
+    try {
+      const { data } = await apiCreate(payload)
+      setExpenses((prev) => [data, ...prev])
+      setAllExpenses((prev) => [data, ...prev])
+      setPagination((p) => ({ ...p, total: p.total + 1 }))
+      return { success: true, data }
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Failed to restore expense' }
     }
   }
 
   return {
     expenses, allExpenses, pagination,
     loading, error,
-    fetchExpenses, addExpense, editExpense, removeExpense,
+    fetchExpenses, addExpense, editExpense, removeExpense, restoreExpense,
   }
 }

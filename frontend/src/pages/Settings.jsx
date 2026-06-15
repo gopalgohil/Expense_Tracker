@@ -3,6 +3,8 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { updateUserProfile, changePassword, deleteAccount } from '../api/client'
 import { useNavigate } from 'react-router-dom'
+import ScaleModal from '../components/animations/ScaleModal'
+import { HoverButton } from '../components/animations/HoverButton'
 
 const CURRENCIES = [
   { value: 'INR', label: '₹  Indian Rupee (INR)' },
@@ -264,51 +266,47 @@ const Settings = () => {
       </div>
 
       {/* ── Delete Modal ── */}
-      {showDelete && (
-        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
-          <div style={{ background:'#fff', borderRadius:20, padding:'32px 28px', width:'100%', maxWidth:380, boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ width:56, height:56, borderRadius:'50%', background:'#fee2e2', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px' }}>
-              <svg width="28" height="28" fill="none" stroke="#ef4444" strokeWidth="2.2"
-                strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
-              </svg>
-            </div>
-            <h3 style={{ fontSize:18, fontWeight:700, color:'#0f0e0c', textAlign:'center', marginBottom:8 }}>
-              Delete Account?
-            </h3>
-            <p style={{ fontSize:13, color:'#7a7670', textAlign:'center', marginBottom:20, lineHeight:1.5 }}>
-              All your expenses, budgets and data will be permanently deleted.
-              Enter your password to confirm.
-            </p>
-            <div style={{ marginBottom:12 }}>
-              <input
-                type="password"
-                placeholder="Enter your password"
-                value={deletePass}
-                onChange={(e) => { setDeletePass(e.target.value); setDeleteErr('') }}
-                className="input-field"
-              />
-              {deleteErr && <p style={{ color:'#dc2626', fontSize:12, marginTop:4 }}>⚠ {deleteErr}</p>}
-            </div>
-            <button
-              onClick={handleDeleteAccount}
-              disabled={deleting}
-              style={{ display:'block', width:'100%', padding:'12px', borderRadius:12, background:'#ef4444', color:'#fff', fontWeight:700, fontSize:15, border:'none', cursor:'pointer', marginBottom:10, opacity: deleting ? 0.6 : 1 }}
-            >
-              {deleting ? 'Deleting…' : 'Yes, Delete My Account'}
-            </button>
-            <button
-              onClick={() => { setShowDelete(false); setDeletePass(''); setDeleteErr('') }}
-              style={{ display:'block', width:'100%', padding:'11px', borderRadius:12, background:'#f5f4f0', color:'#4a4740', fontWeight:500, fontSize:14, border:'none', cursor:'pointer' }}
-            >
-              Cancel
-            </button>
+      <ScaleModal open={showDelete} onClose={() => { setShowDelete(false); setDeletePass(''); setDeleteErr('') }} maxWidth="max-w-md">
+        <div className="p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <svg width="28" height="28" fill="none" stroke="#ef4444" strokeWidth="2.2"
+              strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+            </svg>
           </div>
+          <h3 className="text-lg font-bold text-ink-800 mb-2">Delete Account?</h3>
+          <p className="text-sm text-ink-400 mb-5 leading-relaxed">
+            All your expenses, budgets and data will be permanently deleted.
+            Enter your password to confirm.
+          </p>
+          <div className="mb-4 text-left">
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={deletePass}
+              onChange={(e) => { setDeletePass(e.target.value); setDeleteErr('') }}
+              className="input-field"
+            />
+            {deleteErr && <p className="text-red-600 text-xs mt-1">⚠ {deleteErr}</p>}
+          </div>
+          <HoverButton
+            onClick={handleDeleteAccount}
+            disabled={deleting}
+            className="w-full py-3 rounded-xl bg-red-500 text-white font-bold text-sm mb-2 disabled:opacity-60"
+          >
+            {deleting ? 'Deleting…' : 'Yes, Delete My Account'}
+          </HoverButton>
+          <HoverButton
+            onClick={() => { setShowDelete(false); setDeletePass(''); setDeleteErr('') }}
+            className="w-full py-2.5 rounded-xl bg-ink-50 text-ink-600 font-medium text-sm"
+          >
+            Cancel
+          </HoverButton>
         </div>
-      )}
+      </ScaleModal>
     </div>
   )
 }

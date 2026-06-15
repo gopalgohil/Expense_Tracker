@@ -39,15 +39,6 @@ export const updateProfile = async (req, res) => {
 
     await user.save();
 
-    // Refresh user_info cookie with updated data
-    res.cookie('user_info', JSON.stringify(safeUser(user)), {
-      httpOnly: false,
-      secure:   process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge:   30 * 24 * 60 * 60 * 1000,
-      path:     '/',
-    });
-
     return res.status(200).json(safeUser(user));
   } catch (err) {
     return res.status(500).json({ message: err.message });
@@ -96,6 +87,18 @@ export const deleteAccount = async (req, res) => {
       Budget.deleteMany({ userId: req.user._id }),
       User.findByIdAndDelete(req.user._id),
     ]);
+
+    // Clear auth cookies
+    const clearOpts = {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      expires:  new Date(0),
+      path:     '/',
+    };
+    res.cookie('jwt', '', clearOpts);
+    res.cookie('user_id', '', clearOpts);
+    res.cookie('user_info', '', { ...clearOpts, httpOnly: false });
 
     return res.status(200).json({ message: 'Account deleted successfully.' });
   } catch (err) {

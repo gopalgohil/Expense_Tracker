@@ -20,11 +20,10 @@ const ExportButtons = ({ filters }) => {
     setLoading(true)
 
     try {
-      const token = localStorage.getItem('token')
-      const url   = `${BASE}/api/expenses/export/${type}${buildParams()}`
+      const url = `${BASE}/api/expenses/export/${type}${buildParams()}`
 
       const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       })
 
       if (!res.ok) {

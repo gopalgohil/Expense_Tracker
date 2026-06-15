@@ -46,9 +46,15 @@ export default {
           '0%':   { opacity: '0', transform: 'scale(0.95)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
+        'highlight-new': {
+          '0%':   { boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.5)' },
+          '50%':  { boxShadow: '0 0 0 6px rgba(34, 197, 94, 0.15)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(34, 197, 94, 0)' },
+        },
       },
       animation: {
-        'fade-in': 'fade-in 0.15s ease-out',
+        'fade-in':       'fade-in 0.15s ease-out',
+        'highlight-new': 'highlight-new 2s ease-out 1',
       },
     },
   },

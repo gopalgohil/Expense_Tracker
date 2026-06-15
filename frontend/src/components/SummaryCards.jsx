@@ -1,5 +1,8 @@
-const fmt = (n) =>
-  `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+import { motion } from 'framer-motion'
+import CountUpNumber from './animations/CountUpNumber'
+import FadeInSection from './animations/FadeInSection'
+
+const fmt = (n) => Number(n)
 
 const SummaryCards = ({ summary, topCats }) => {
   if (!summary) return null
@@ -13,8 +16,10 @@ const SummaryCards = ({ summary, topCats }) => {
   const cards = [
     {
       label: 'Total Spent',
-      value: fmt(currentTotal),
-      sub:   'This month',
+      numeric: currentTotal,
+      prefix: '₹',
+      decimals: 0,
+      sub: 'This month',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round"
@@ -25,8 +30,8 @@ const SummaryCards = ({ summary, topCats }) => {
     },
     {
       label: 'Top Category',
-      value: top ? top.category : '—',
-      sub:   top ? fmt(top.total) : 'No data',
+      text: top ? top.category : '—',
+      sub: top ? `₹${fmt(top.total).toLocaleString('en-IN')}` : 'No data',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round"
@@ -37,7 +42,7 @@ const SummaryCards = ({ summary, topCats }) => {
     },
     {
       label: 'vs Last Month',
-      value: changeZero
+      text: changeZero
         ? 'No change'
         : `${changeUp ? '+' : ''}${changePercent}%`,
       sub: changeUp
@@ -62,8 +67,10 @@ const SummaryCards = ({ summary, topCats }) => {
     },
     {
       label: 'Avg Daily Spend',
-      value: fmt(avgDailySpend),
-      sub:   'Per day this month',
+      numeric: avgDailySpend,
+      prefix: '₹',
+      decimals: 0,
+      sub: 'Per day this month',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round"
@@ -76,21 +83,32 @@ const SummaryCards = ({ summary, topCats }) => {
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {cards.map((card) => (
-        <div key={card.label} className="card p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-ink-400 uppercase tracking-wider">{card.label}</p>
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${card.color}`}>
-              {card.icon}
+      {cards.map((card, i) => (
+        <FadeInSection key={card.label} delay={i * 0.08}>
+          <motion.div
+            className="card p-4 flex flex-col gap-3 h-full hover:shadow-lift transition-shadow duration-300"
+            whileHover={{ y: -2 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-ink-400 uppercase tracking-wider">{card.label}</p>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${card.color}`}>
+                {card.icon}
+              </div>
             </div>
-          </div>
-          <div>
-            <p className={`text-xl font-bold font-mono ${card.valueColor || 'text-ink-800'}`}>
-              {card.value}
-            </p>
-            <p className="text-xs text-ink-400 mt-0.5">{card.sub}</p>
-          </div>
-        </div>
+            <div>
+              <p className={`text-xl font-bold font-mono ${card.valueColor || 'text-ink-800'}`}>
+                {card.numeric != null ? (
+                  <>
+                    {card.prefix}
+                    <CountUpNumber value={card.numeric} decimals={card.decimals} />
+                  </>
+                ) : card.text}
+              </p>
+              <p className="text-xs text-ink-400 mt-0.5">{card.sub}</p>
+            </div>
+          </motion.div>
+        </FadeInSection>
       ))}
     </div>
   )

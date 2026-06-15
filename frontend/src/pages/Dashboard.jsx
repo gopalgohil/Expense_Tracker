@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useExpenses }      from '../hooks/useExpenses'
 import { useBudgets }       from '../hooks/useBudgets'
@@ -19,6 +20,16 @@ import Pagination           from '../components/Pagination'
 import DarkModeToggle       from '../components/DarkModeToggle'
 import BudgetPanel          from './BudgetPanel'
 import Settings             from './Settings'
+import FadeInSection        from '../components/animations/FadeInSection'
+import { AnimatedList, ListItem } from '../components/animations/AnimatedList'
+import { HoverButton }      from '../components/animations/HoverButton'
+import {
+  SummaryCardsSkeleton,
+  StatsBarSkeleton,
+  ChartSkeleton,
+  ExpenseListSkeleton,
+  BudgetSkeleton,
+} from '../components/animations/SkeletonLoader'
 
 const CATEGORIES = [
   '', 'Food & Dining', 'Transport', 'Shopping', 'Entertainment',
@@ -37,10 +48,10 @@ const DEFAULT_ADVANCED = { minAmount: '', maxAmount: '', sortBy: 'date_desc' }
 const Dashboard = () => {
   const {
     expenses, allExpenses, pagination, loading, error,
-    fetchExpenses, addExpense, editExpense, removeExpense,
+    fetchExpenses, addExpense, editExpense, removeExpense, restoreExpense,
   } = useExpenses()
   const { status, fetchBudgets, refreshStatus } = useBudgets()
-  const { summary, topCats, dailyData, fetchAnalytics } = useAnalytics()
+  const { summary, topCats, dailyData, loading: analyticsLoading, fetchAnalytics } = useAnalytics()
 
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarOpen,   setSidebarOpen]   = useState(false)
@@ -49,8 +60,8 @@ const Dashboard = () => {
   const [advanced,   setAdvanced]   = useState(DEFAULT_ADVANCED)
   const [page,       setPage]       = useState(1)
   const [addLoading, setAddLoading] = useState(false)
+  const [newExpenseIds, setNewExpenseIds] = useState(new Set())
   const notifiedRef = useRef(new Set())
-  const formRef     = useRef(null)
 
   // Build full params object for API
   const buildParams = useCallback(() => {
@@ -104,9 +115,21 @@ const Dashboard = () => {
     const result = await addExpense(formData)
     if (result.success) {
       toast.success('Expense added!')
+      if (result.data?._id) {
+        setNewExpenseIds((prev) => new Set(prev).add(result.data._id))
+        setTimeout(() => {
+          setNewExpenseIds((prev) => {
+            const next = new Set(prev)
+            next.delete(result.data._id)
+            return next
+          })
+        }, 3000)
+      }
       await refreshStatus(filters.month)
       setActiveSection('dashboard')
       setPage(1)
+    } else {
+      toast.error(result.message || 'Failed to add expense')
     }
     setAddLoading(false)
     return result
@@ -127,9 +150,38 @@ const Dashboard = () => {
 
   const handleDelete = async (id) => {
     const result = await removeExpense(id)
-    if (result.success) await refreshStatus(filters.month)
+    if (result.success) {
+      await refreshStatus(filters.month)
+      toast(
+        (t) => (
+          <div className="flex items-center gap-3">
+            <span className="text-sm">Expense deleted</span>
+            <button
+              onClick={async () => {
+                toast.dismiss(t.id)
+                const restored = await restoreExpense(result.deleted)
+                if (restored.success) {
+                  toast.success('Expense restored!')
+                  await refreshStatus(filters.month)
+                } else {
+                  toast.error(restored.message || 'Could not restore')
+                }
+              }}
+              className="text-sm font-semibold text-sage hover:text-sage-dark underline"
+            >
+              Undo
+            </button>
+          </div>
+        ),
+        { duration: 3000, icon: '🗑️' }
+      )
+    } else {
+      toast.error(result.message || 'Failed to delete expense')
+    }
     return result
   }
+
+  const chartKey = `${filters.month}-${filters.category}-${search}`
 
   /* ─────────────────────────────────────────
      Content panels
@@ -141,19 +193,26 @@ const Dashboard = () => {
       /* ── Add Expense ── */
       case 'add-expense':
         return (
-          <div className="max-w-lg mx-auto">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-ink-800">Add Expense</h2>
-              <p className="text-sm text-ink-400 mt-1">Record a new transaction</p>
+          <FadeInSection>
+            <div className="max-w-lg mx-auto">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-ink-800">Add Expense</h2>
+                <p className="text-sm text-ink-400 mt-1">Record a new transaction</p>
+              </div>
+              <motion.div
+                className="card p-6"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
+                <ExpenseForm
+                  onSubmit={handleAdd}
+                  onCancel={() => setActiveSection('dashboard')}
+                  loading={addLoading}
+                />
+              </motion.div>
             </div>
-            <div className="card p-6">
-              <ExpenseForm
-                onSubmit={handleAdd}
-                onCancel={() => setActiveSection('dashboard')}
-                loading={addLoading}
-              />
-            </div>
-          </div>
+          </FadeInSection>
         )
 
       /* ── Budgets ── */
@@ -168,19 +227,25 @@ const Dashboard = () => {
       case 'charts':
         return (
           <div>
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-ink-800">Charts</h2>
-              <p className="text-sm text-ink-400 mt-1">Visual breakdown of your spending</p>
-            </div>
+            <FadeInSection>
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-ink-800">Charts</h2>
+                <p className="text-sm text-ink-400 mt-1">Visual breakdown of your spending</p>
+              </div>
+            </FadeInSection>
             <div className="space-y-5">
               {expenses.length > 0 ? (
-                <CategoryPieChart expenses={expenses} />
+                <CategoryPieChart expenses={expenses} chartKey={chartKey} />
               ) : (
-                <div className="card p-10 text-center">
-                  <p className="text-ink-400 text-sm">No data for the selected period.</p>
-                </div>
+                <FadeInSection>
+                  <div className="card p-10 text-center">
+                    <p className="text-ink-400 text-sm">No data for the selected period.</p>
+                  </div>
+                </FadeInSection>
               )}
-              {allExpenses.length > 0 && <MonthlyBarChart expenses={allExpenses} />}
+              {allExpenses.length > 0 && (
+                <MonthlyBarChart expenses={allExpenses} chartKey={chartKey} />
+              )}
             </div>
           </div>
         )
@@ -189,124 +254,159 @@ const Dashboard = () => {
       default:
         return (
           <div className="space-y-5">
-            {/* Page header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-ink-800">Dashboard</h2>
-                <p className="text-sm text-ink-400 mt-0.5">Track and manage your spending</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <ExportButtons filters={filters} />
-                <button
-                  onClick={() => setActiveSection('add-expense')}
-                  className="btn-primary flex items-center gap-1.5 text-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add expense
-                </button>
-              </div>
-            </div>
-
-            {/* Filters */}
-            <div className="card p-4">
-              <div className="flex flex-wrap gap-3">
-                <div className="flex-1 min-w-[140px]">
-                  <label className="label">Month</label>
-                  <input name="month" type="month" value={filters.month}
-                    onChange={(e) => { setFilters((p) => ({ ...p, month: e.target.value })); setPage(1) }}
-                    className="input-field"
-                    max={maxMonth()} />
+            <FadeInSection>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-ink-800">Dashboard</h2>
+                  <p className="text-sm text-ink-400 mt-0.5">Track and manage your spending</p>
                 </div>
-                <div className="flex-1 min-w-[140px]">
-                  <label className="label">Category</label>
-                  <select name="category" value={filters.category}
-                    onChange={(e) => { setFilters((p) => ({ ...p, category: e.target.value })); setPage(1) }}
-                    className="input-field bg-white">
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c || 'All categories'}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-end">
-                  <button onClick={handleResetAll} className="btn-ghost text-sm py-3">Reset all</button>
+                <div className="flex items-center gap-2">
+                  <ExportButtons filters={filters} />
+                  <HoverButton
+                    onClick={() => setActiveSection('add-expense')}
+                    className="btn-primary flex items-center gap-1.5 text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add expense
+                  </HoverButton>
                 </div>
               </div>
-            </div>
+            </FadeInSection>
 
-            {/* Search + Advanced filters */}
-            <SearchFilterBar
-              search={search}
-              onSearchChange={(v) => { setSearch(v); setPage(1) }}
-              advanced={advanced}
-              onAdvancedChange={(v) => { setAdvanced((p) => ({ ...p, ...v })); setPage(1) }}
-              onReset={handleResetAll}
-            />
-
-            {/* Summary cards */}
-            <SummaryCards summary={summary} topCats={topCats} />
-
-            {/* Stats */}
-            {!loading && expenses.length > 0 && <StatsBar expenses={expenses} />}
-
-            {/* Budget progress */}
-            {status.length > 0 && <BudgetProgress status={status} />}
-
-            {/* Daily bar chart + month compare side by side on desktop */}
-            {(dailyData.length > 0 || summary) && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <DailyBarChart data={dailyData} />
-                <MonthCompareChart summary={summary} />
+            <FadeInSection delay={0.05}>
+              <div className="card p-4">
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex-1 min-w-[140px]">
+                    <label className="label">Month</label>
+                    <input name="month" type="month" value={filters.month}
+                      onChange={(e) => { setFilters((p) => ({ ...p, month: e.target.value })); setPage(1) }}
+                      className="input-field"
+                      max={maxMonth()} />
+                  </div>
+                  <div className="flex-1 min-w-[140px]">
+                    <label className="label">Category</label>
+                    <select name="category" value={filters.category}
+                      onChange={(e) => { setFilters((p) => ({ ...p, category: e.target.value })); setPage(1) }}
+                      className="input-field bg-white">
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c || 'All categories'}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <HoverButton onClick={handleResetAll} className="btn-ghost text-sm py-3">
+                      Reset all
+                    </HoverButton>
+                  </div>
+                </div>
               </div>
+            </FadeInSection>
+
+            <FadeInSection delay={0.08}>
+              <SearchFilterBar
+                search={search}
+                onSearchChange={(v) => { setSearch(v); setPage(1) }}
+                advanced={advanced}
+                onAdvancedChange={(v) => { setAdvanced((p) => ({ ...p, ...v })); setPage(1) }}
+                onReset={handleResetAll}
+              />
+            </FadeInSection>
+
+            {analyticsLoading ? (
+              <SummaryCardsSkeleton />
+            ) : (
+              <FadeInSection delay={0.1}>
+                <SummaryCards summary={summary} topCats={topCats} />
+              </FadeInSection>
             )}
 
-            {/* Expense list */}
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((n) => (
-                  <div key={n} className="card p-4 animate-pulse">
-                    <div className="flex items-center gap-3">
-                      <div className="h-6 w-24 bg-ink-100 rounded-full" />
-                      <div className="h-4 w-32 bg-ink-100 rounded" />
-                      <div className="ml-auto h-5 w-16 bg-ink-100 rounded" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : error ? (
-              <div className="card p-8 text-center">
-                <p className="text-coral text-sm font-medium">{error}</p>
-                <button onClick={() => fetchExpenses(filters)} className="btn-ghost mt-3 text-sm">Try again</button>
-              </div>
-            ) : expenses.length === 0 ? (
-              <div className="card p-12 text-center">
-                <div className="w-12 h-12 bg-sage-light rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
+            {!loading && expenses.length > 0 && (
+              <FadeInSection delay={0.12}>
+                <StatsBar expenses={expenses} />
+              </FadeInSection>
+            )}
+            {loading && !expenses.length && <StatsBarSkeleton />}
+
+            {status.length > 0 && (
+              <FadeInSection delay={0.14}>
+                <BudgetProgress status={status} />
+              </FadeInSection>
+            )}
+            {analyticsLoading && status.length === 0 && <BudgetSkeleton />}
+
+            {(dailyData.length > 0 || summary) && (
+              <FadeInSection delay={0.16}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {analyticsLoading ? (
+                    <>
+                      <ChartSkeleton />
+                      <ChartSkeleton />
+                    </>
+                  ) : (
+                    <>
+                      <DailyBarChart data={dailyData} chartKey={chartKey} />
+                      <MonthCompareChart summary={summary} chartKey={chartKey} />
+                    </>
+                  )}
                 </div>
-                <p className="text-ink-600 font-medium">No expenses found</p>
-                <p className="text-ink-400 text-sm mt-1">
-                  {filters.category || filters.month !== currentMonth()
-                    ? 'Try adjusting your filters'
-                    : 'Add your first expense to get started'}
-                </p>
-                <button onClick={() => setActiveSection('add-expense')}
-                  className="btn-primary mt-4 text-sm">Add expense</button>
-              </div>
+              </FadeInSection>
+            )}
+
+            {loading ? (
+              <ExpenseListSkeleton count={4} />
+            ) : error ? (
+              <FadeInSection>
+                <div className="card p-8 text-center">
+                  <p className="text-coral text-sm font-medium">{error}</p>
+                  <HoverButton onClick={() => fetchExpenses(buildParams())} className="btn-ghost mt-3 text-sm">
+                    Try again
+                  </HoverButton>
+                </div>
+              </FadeInSection>
+            ) : expenses.length === 0 ? (
+              <FadeInSection>
+                <div className="card p-12 text-center">
+                  <div className="w-12 h-12 bg-sage-light rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <p className="text-ink-600 font-medium">No expenses found</p>
+                  <p className="text-ink-400 text-sm mt-1">
+                    {filters.category || filters.month !== currentMonth()
+                      ? 'Try adjusting your filters'
+                      : 'Add your first expense to get started'}
+                  </p>
+                  <HoverButton onClick={() => setActiveSection('add-expense')}
+                    className="btn-primary mt-4 text-sm">Add expense</HoverButton>
+                </div>
+              </FadeInSection>
             ) : (
-              <div className="space-y-2.5">
-                {expenses.map((expense) => (
-                  <ExpenseCard key={expense._id} expense={expense}
-                    onEdit={handleEdit} onDelete={handleDelete} />
-                ))}
+              <FadeInSection delay={0.18}>
+                <AnimatedList className="space-y-2.5">
+                  {expenses.map((expense, index) => (
+                    <ListItem
+                      key={expense._id}
+                      index={index}
+                      isNew={newExpenseIds.has(expense._id)}
+                    >
+                      <ExpenseCard
+                        expense={expense}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        isNew={newExpenseIds.has(expense._id)}
+                      />
+                    </ListItem>
+                  ))}
+                </AnimatedList>
                 <Pagination
                   pagination={pagination}
                   onPageChange={(p) => setPage(p)}
                 />
-              </div>
+              </FadeInSection>
             )}
           </div>
         )

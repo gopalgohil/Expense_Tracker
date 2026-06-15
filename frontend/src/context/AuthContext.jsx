@@ -1,26 +1,37 @@
-import { createContext, useContext, useState } from 'react'
-import { login as apiLogin, register as apiRegister, logout as apiLogout } from '../api/client'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe } from '../api/client'
 import api from '../api/client'
 
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
-  // User display info (name, email, avatar) stored in localStorage — NOT sensitive
-  // Token is stored in HttpOnly cookie by the server — JS cannot access it
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('user')) } catch { return null }
-  })
+  // Profile lives in memory only — jwt + user_id are HttpOnly cookies set by the server
+  const [user, setUser] = useState(null)
+  const [initializing, setInitializing] = useState(true)
   const [loading, setLoading] = useState(false)
 
+  const normalizeUser = (data) => ({
+    _id:      data._id,
+    name:     data.name,
+    email:    data.email,
+    avatar:   data.avatar   || null,
+    currency: data.currency || 'INR',
+  })
+
+  // Restore session from cookie on refresh — fetch profile from API
+  useEffect(() => {
+    // Remove legacy auth keys from localStorage
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+
+    getMe()
+      .then(({ data }) => setUser(normalizeUser(data)))
+      .catch(() => setUser(null))
+      .finally(() => setInitializing(false))
+  }, [])
+
   const syncUser = (data) => {
-    const u = {
-      _id:      data._id,
-      name:     data.name,
-      email:    data.email,
-      avatar:   data.avatar   || null,
-      currency: data.currency || 'INR',
-    }
-    localStorage.setItem('user', JSON.stringify(u))   // only display info, no token
+    const u = normalizeUser(data)
     setUser(u)
     return u
   }
@@ -29,8 +40,6 @@ export const AuthProvider = ({ children }) => {
     setLoading(true)
     try {
       const { data } = await apiLogin({ email, password })
-      // Server automatically sets jwt token in HttpOnly cookie
-      // We only save display info to localStorage
       syncUser(data)
       return { success: true }
     } catch (err) {
@@ -41,8 +50,6 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password) => {
     setLoading(true)
     try {
-      // Register only creates the account — don't set user state
-      // User must explicitly log in after registration
       await apiRegister({ name, email, password })
       return { success: true }
     } catch (err) {
@@ -71,16 +78,13 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Server clears the HttpOnly jwt cookie
       await apiLogout()
     } catch (_) {}
-    // Clear display info from localStorage
-    localStorage.removeItem('user')
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, uploadAvatar }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, initializing, updateUser, uploadAvatar }}>
       {children}
     </AuthContext.Provider>
   )

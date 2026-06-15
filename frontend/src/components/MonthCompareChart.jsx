@@ -3,6 +3,8 @@ import {
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 
+import AnimatedChart from './animations/AnimatedChart'
+
 const Tip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
   return (
@@ -26,7 +28,7 @@ const fmtMonth = (ym) => {
   return new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
 }
 
-const MonthCompareChart = ({ summary }) => {
+const MonthCompareChart = ({ summary, chartKey = 'compare' }) => {
   if (!summary) return null
 
   const { currentMonth, previousMonth, currentTotal, previousTotal, changePercent } = summary
@@ -43,39 +45,54 @@ const MonthCompareChart = ({ summary }) => {
   const prevLabel = fmtMonth(previousMonth)
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="label">Month comparison</p>
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-          changePercent > 0
-            ? 'bg-red-50 text-red-500'
-            : changePercent < 0
-              ? 'bg-green-50 text-green-600'
-              : 'bg-ink-50 text-ink-500'
-        }`}>
-          {changePercent > 0 ? '+' : ''}{changePercent}% vs last month
-        </span>
+    <AnimatedChart chartKey={chartKey}>
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <p className="label">Month comparison</p>
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+            changePercent > 0
+              ? 'bg-red-50 text-red-500'
+              : changePercent < 0
+                ? 'bg-green-50 text-green-600'
+                : 'bg-ink-50 text-ink-500'
+          }`}>
+            {changePercent > 0 ? '+' : ''}{changePercent}% vs last month
+          </span>
+        </div>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={data} barCategoryGap="40%">
+            <CartesianGrid strokeDasharray="3 3" stroke="#e8e6df" vertical={false} />
+            <XAxis dataKey="name" hide />
+            <YAxis
+              tick={{ fontSize: 10, fill: '#7a7670' }}
+              axisLine={false} tickLine={false}
+              tickFormatter={(v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`}
+              width={44}
+            />
+            <Tooltip content={<Tip />} cursor={{ fill: '#f5f4f0' }} />
+            <Legend
+              formatter={(v) => <span className="text-xs text-ink-600">{v}</span>}
+              iconType="circle" iconSize={8}
+            />
+            <Bar
+              dataKey={prevLabel}
+              fill="#c8dcd0"
+              radius={[6, 6, 0, 0]}
+              isAnimationActive
+              animationDuration={700}
+            />
+            <Bar
+              dataKey={currLabel}
+              fill="#4a7c59"
+              radius={[6, 6, 0, 0]}
+              isAnimationActive
+              animationDuration={700}
+              animationBegin={150}
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-      <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={data} barCategoryGap="40%">
-          <CartesianGrid strokeDasharray="3 3" stroke="#e8e6df" vertical={false} />
-          <XAxis dataKey="name" hide />
-          <YAxis
-            tick={{ fontSize: 10, fill: '#7a7670' }}
-            axisLine={false} tickLine={false}
-            tickFormatter={(v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`}
-            width={44}
-          />
-          <Tooltip content={<Tip />} cursor={{ fill: '#f5f4f0' }} />
-          <Legend
-            formatter={(v) => <span className="text-xs text-ink-600">{v}</span>}
-            iconType="circle" iconSize={8}
-          />
-          <Bar dataKey={prevLabel} fill="#c8dcd0" radius={[6, 6, 0, 0]} />
-          <Bar dataKey={currLabel} fill="#4a7c59" radius={[6, 6, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
+    </AnimatedChart>
   )
 }
 

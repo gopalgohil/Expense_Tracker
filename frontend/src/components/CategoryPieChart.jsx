@@ -15,6 +15,8 @@ const COLORS = {
   'Other':         '#9ca3af',
 }
 
+import AnimatedChart from './animations/AnimatedChart'
+
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
   const { name, value } = payload[0]
@@ -28,7 +30,7 @@ const CustomTooltip = ({ active, payload }) => {
   )
 }
 
-const CategoryPieChart = ({ expenses }) => {
+const CategoryPieChart = ({ expenses, chartKey = 'pie' }) => {
   const byCategory = expenses.reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount
     return acc
@@ -41,39 +43,44 @@ const CategoryPieChart = ({ expenses }) => {
   if (!data.length) return null
 
   return (
-    <div className="card p-5">
-      <p className="label mb-4">Category breakdown</p>
-      <ResponsiveContainer width="100%" height={260}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={95}
-            paddingAngle={2}
-            dataKey="value"
-          >
-            {data.map((entry) => (
-              <Cell
-                key={entry.name}
-                fill={COLORS[entry.name] || COLORS['Other']}
-                stroke="white"
-                strokeWidth={2}
-              />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            iconType="circle"
-            iconSize={8}
-            formatter={(value) => (
-              <span className="text-xs text-ink-600">{value}</span>
-            )}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+    <AnimatedChart chartKey={chartKey}>
+      <div className="card p-5">
+        <p className="label mb-4">Category breakdown</p>
+        <ResponsiveContainer width="100%" height={260}>
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={95}
+              paddingAngle={2}
+              dataKey="value"
+              isAnimationActive
+              animationDuration={900}
+              animationEasing="ease-out"
+            >
+              {data.map((entry) => (
+                <Cell
+                  key={entry.name}
+                  fill={COLORS[entry.name] || COLORS['Other']}
+                  stroke="white"
+                  strokeWidth={2}
+                />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              iconType="circle"
+              iconSize={8}
+              formatter={(value) => (
+                <span className="text-xs text-ink-600">{value}</span>
+              )}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    </AnimatedChart>
   )
 }
 

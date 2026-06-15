@@ -6,7 +6,7 @@ const api = axios.create({
   withCredentials:  true,   // send cookies with every request
 })
 
-// NO token in headers anymore — cookie is sent automatically by browser
+// Auth via HttpOnly jwt cookie — profile fetched from /auth/me, kept in memory only
 
 // Auto-logout on 401
 const SKIP_REDIRECT = ['/user/delete-account', '/user/change-password', '/auth/me', '/auth/login', '/auth/register']

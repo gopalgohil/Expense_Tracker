@@ -3,6 +3,8 @@ import {
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
 
+import AnimatedChart from './animations/AnimatedChart'
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
@@ -36,42 +38,50 @@ const buildMonthlyData = (expenses) => {
     })
 }
 
-const MonthlyBarChart = ({ expenses }) => {
+const MonthlyBarChart = ({ expenses, chartKey = 'monthly' }) => {
   const data = buildMonthlyData(expenses)
 
   if (!data.length) return null
 
   return (
-    <div className="card p-5">
-      <p className="label mb-4">Monthly spending trend</p>
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={data} barCategoryGap="35%">
-          <CartesianGrid strokeDasharray="3 3" stroke="#e8e6df" vertical={false} />
-          <XAxis
-            dataKey="month"
-            tick={{ fontSize: 11, fill: '#7a7670' }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis
-            tick={{ fontSize: 11, fill: '#7a7670' }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
-            width={48}
-          />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f5f4f0' }} />
-          <Bar dataKey="total" radius={[6, 6, 0, 0]}>
-            {data.map((entry, index) => (
-              <Cell
-                key={index}
-                fill={index === data.length - 1 ? '#4a7c59' : '#c8dcd0'}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
+    <AnimatedChart chartKey={chartKey}>
+      <div className="card p-5">
+        <p className="label mb-4">Monthly spending trend</p>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={data} barCategoryGap="35%">
+            <CartesianGrid strokeDasharray="3 3" stroke="#e8e6df" vertical={false} />
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 11, fill: '#7a7670' }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: '#7a7670' }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+              width={48}
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f5f4f0' }} />
+            <Bar
+              dataKey="total"
+              radius={[6, 6, 0, 0]}
+              isAnimationActive
+              animationDuration={800}
+              animationEasing="ease-out"
+            >
+              {data.map((entry, index) => (
+                <Cell
+                  key={index}
+                  fill={index === data.length - 1 ? '#4a7c59' : '#c8dcd0'}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </AnimatedChart>
   )
 }
 
