@@ -2,10 +2,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
+import { useCurrency } from '../hooks/useCurrency'
 
 import AnimatedChart from './animations/AnimatedChart'
 
 const Tip = ({ active, payload }) => {
+  const { formatMoney } = useCurrency()
   if (!active || !payload?.length) return null
   return (
     <div className="bg-white border border-ink-100 rounded-xl shadow-lift px-3 py-2 text-xs space-y-1">
@@ -14,7 +16,7 @@ const Tip = ({ active, payload }) => {
           <span className="w-2 h-2 rounded-full" style={{ background: p.fill }} />
           <span className="text-ink-600">{p.name}:</span>
           <span className="font-mono font-semibold text-ink-800">
-            ₹{Number(p.value).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+            {formatMoney(p.value, 0)}
           </span>
         </div>
       ))}
@@ -29,6 +31,7 @@ const fmtMonth = (ym) => {
 }
 
 const MonthCompareChart = ({ summary, chartKey = 'compare' }) => {
+  const { currencySymbol } = useCurrency()
   if (!summary) return null
 
   const { currentMonth, previousMonth, currentTotal, previousTotal, changePercent } = summary
@@ -66,7 +69,7 @@ const MonthCompareChart = ({ summary, chartKey = 'compare' }) => {
             <YAxis
               tick={{ fontSize: 10, fill: '#7a7670' }}
               axisLine={false} tickLine={false}
-              tickFormatter={(v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`}
+              tickFormatter={(v) => v >= 1000 ? `${currencySymbol}${(v / 1000).toFixed(0)}k` : `${currencySymbol}${v}`}
               width={44}
             />
             <Tooltip content={<Tip />} cursor={{ fill: '#f5f4f0' }} />

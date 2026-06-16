@@ -14,6 +14,12 @@ export const upsertBudget = async (req, res) => {
     return res.status(400).json({ message: 'Budget limit must be greater than 0' });
   }
 
+  // Prevent past budgets
+  const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  if (month < currentMonthStr) {
+    return res.status(400).json({ message: 'Budgets cannot be created for past dates.' });
+  }
+
   try {
     const budget = await Budget.findOneAndUpdate(
       { userId: req.user._id, month, category },

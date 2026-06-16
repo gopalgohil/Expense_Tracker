@@ -9,9 +9,26 @@ const ExportButtons = ({ filters }) => {
 
   const buildParams = () => {
     const p = new URLSearchParams()
-    if (filters.month)    p.append('month',    filters.month)
     if (filters.category) p.append('category', filters.category)
+
+    if (filters.dateRangeType === 'monthly') {
+      if (filters.month) p.append('month', filters.month)
+    } else if (filters.dateRangeType === 'yearly') {
+      if (filters.year) p.append('year', filters.year)
+    } else if (filters.dateRangeType === 'custom') {
+      if (filters.startDate) p.append('startDate', filters.startDate)
+      if (filters.endDate) p.append('endDate', filters.endDate)
+    } else if (filters.dateRangeType === 'all') {
+      p.append('allTime', 'true')
+    }
     return p.toString() ? `?${p.toString()}` : ''
+  }
+
+  const getExportLabel = () => {
+    if (filters.dateRangeType === 'monthly') return filters.month || 'monthly'
+    if (filters.dateRangeType === 'yearly') return filters.year || 'yearly'
+    if (filters.dateRangeType === 'custom') return `${filters.startDate || ''}-to-${filters.endDate || ''}`
+    return 'all-time'
   }
 
   const download = async (type) => {
@@ -35,7 +52,7 @@ const ExportButtons = ({ filters }) => {
       const objectUrl = URL.createObjectURL(blob)
       const a        = document.createElement('a')
       a.href         = objectUrl
-      a.download     = `spendwise-expenses-${filters.month || 'all'}.${type}`
+      a.download     = `spendwise-expenses-${getExportLabel()}.${type}`
       document.body.appendChild(a)
       a.click()
       a.remove()

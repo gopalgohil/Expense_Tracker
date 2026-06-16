@@ -2,22 +2,25 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
+import { useCurrency } from '../hooks/useCurrency'
 
 import AnimatedChart from './animations/AnimatedChart'
 
 const Tip = ({ active, payload, label }) => {
+  const { formatMoney } = useCurrency()
   if (!active || !payload?.length) return null
   return (
     <div className="bg-white border border-ink-100 rounded-xl shadow-lift px-3 py-2 text-xs">
       <p className="font-medium text-ink-700">Day {label}</p>
       <p className="text-ink-500 font-mono mt-0.5">
-        ₹{Number(payload[0].value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        {formatMoney(payload[0].value)}
       </p>
     </div>
   )
 }
 
 const DailyBarChart = ({ data, chartKey = 'daily' }) => {
+  const { currencySymbol } = useCurrency()
   if (!data?.length) return null
 
   const max = Math.max(...data.map((d) => d.total))
@@ -39,7 +42,7 @@ const DailyBarChart = ({ data, chartKey = 'daily' }) => {
             <YAxis
               tick={{ fontSize: 10, fill: '#7a7670' }}
               axisLine={false} tickLine={false}
-              tickFormatter={(v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`}
+              tickFormatter={(v) => v >= 1000 ? `${currencySymbol}${(v / 1000).toFixed(0)}k` : `${currencySymbol}${v}`}
               width={44}
             />
             <Tooltip content={<Tip />} cursor={{ fill: '#f5f4f0' }} />

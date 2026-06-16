@@ -1,4 +1,6 @@
 import Expense from '../models/Expense.js';
+import Budget from '../models/Budget.js';
+import { getPeriodRanges } from '../utils/dateHelper.js';
 
 // @desc    Get all user expenses (with optional filters, search, sort, pagination)
 // @route   GET /api/expenses
@@ -18,23 +20,13 @@ export const getExpenses = async (req, res) => {
     // Category filter
     if (category) query.category = category;
 
-    // Month filter
-    if (month) {
-      const parts = month.split('-');
-      if (parts.length === 2) {
-        const year = parseInt(parts[0]);
-        const m    = parseInt(parts[1]);
-        if (!isNaN(year) && !isNaN(m) && m >= 1 && m <= 12) {
-          query.date = {
-            $gte: new Date(Date.UTC(year, m - 1, 1)),
-            $lt:  new Date(Date.UTC(year, m, 1)),
-          };
-        } else {
-          return res.status(400).json({ message: 'Invalid month format. Use YYYY-MM' });
-        }
-      } else {
-        return res.status(400).json({ message: 'Invalid month format. Use YYYY-MM' });
-      }
+    // Date range filter (supports month, quarter, year, custom startDate/endDate, all-time)
+    const ranges = getPeriodRanges(req.query);
+    if (ranges.current) {
+      query.date = {
+        $gte: ranges.current.start,
+        $lt:  ranges.current.end,
+      };
     }
 
     // Search — partial match on description (case-insensitive)
@@ -108,6 +100,35 @@ const createExpense = async (req, res) => {
       return res.status(400).json({ message: 'Please select a recurrence interval' });
     }
 
+    // Budget Validation
+    const yVal = expenseDate.getUTCFullYear();
+    const mVal = expenseDate.getUTCMonth() + 1;
+    const ymString = `${yVal}-${String(mVal).padStart(2, '0')}`;
+
+    const budget = await Budget.findOne({
+      userId: req.user._id,
+      category,
+      month: ymString
+    });
+
+    if (budget) {
+      const startOfMonth = new Date(Date.UTC(yVal, mVal - 1, 1));
+      const endOfMonth = new Date(Date.UTC(yVal, mVal, 1));
+
+      const existingExpenses = await Expense.find({
+        userId: req.user._id,
+        category,
+        date: { $gte: startOfMonth, $lt: endOfMonth }
+      });
+
+      const totalSpent = existingExpenses.reduce((sum, e) => sum + e.amount, 0);
+      if (totalSpent + Number(amount) > budget.limit) {
+        return res.status(400).json({
+          message: `Budget limit exceeded. Your budget for this category is ₹${budget.limit}. You cannot add expenses beyond the allocated budget.`
+        });
+      }
+    }
+
     const expense = await Expense.create({
       amount:             Number(amount),
       category,
@@ -163,6 +184,37 @@ const updateExpense = async (req, res) => {
       } else {
         expense.recurrenceInterval = null;
         expense.nextDueDate        = null;
+      }
+    }
+
+    // Budget Validation on Update
+    const yVal = expense.date.getUTCFullYear();
+    const mVal = expense.date.getUTCMonth() + 1;
+    const ymString = `${yVal}-${String(mVal).padStart(2, '0')}`;
+
+    const budget = await Budget.findOne({
+      userId: req.user._id,
+      category: expense.category,
+      month: ymString
+    });
+
+    if (budget) {
+      const startOfMonth = new Date(Date.UTC(yVal, mVal - 1, 1));
+      const endOfMonth = new Date(Date.UTC(yVal, mVal, 1));
+
+      // Find other expenses in this category for this month (excluding the one being updated)
+      const existingExpenses = await Expense.find({
+        userId: req.user._id,
+        category: expense.category,
+        date: { $gte: startOfMonth, $lt: endOfMonth },
+        _id: { $ne: expense._id }
+      });
+
+      const totalSpent = existingExpenses.reduce((sum, e) => sum + e.amount, 0);
+      if (totalSpent + expense.amount > budget.limit) {
+        return res.status(400).json({
+          message: `Budget limit exceeded. Your budget for this category is ₹${budget.limit}. You cannot add expenses beyond the allocated budget.`
+        });
       }
     }
 

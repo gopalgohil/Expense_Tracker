@@ -1,10 +1,13 @@
 import { motion } from 'framer-motion'
 import CountUpNumber from './animations/CountUpNumber'
 import FadeInSection from './animations/FadeInSection'
+import { useCurrency } from '../hooks/useCurrency'
 
 const fmt = (n) => Number(n)
 
 const SummaryCards = ({ summary, topCats }) => {
+  const { currencySymbol, formatMoney } = useCurrency()
+
   if (!summary) return null
 
   const { currentTotal, changePercent, avgDailySpend } = summary
@@ -17,7 +20,7 @@ const SummaryCards = ({ summary, topCats }) => {
     {
       label: 'Total Spent',
       numeric: currentTotal,
-      prefix: '₹',
+      prefix: currencySymbol,
       decimals: 0,
       sub: 'This month',
       icon: (
@@ -31,7 +34,7 @@ const SummaryCards = ({ summary, topCats }) => {
     {
       label: 'Top Category',
       text: top ? top.category : '—',
-      sub: top ? `₹${fmt(top.total).toLocaleString('en-IN')}` : 'No data',
+      sub: top ? `${formatMoney(top.total, 0)}` : 'No data',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round"
@@ -68,7 +71,7 @@ const SummaryCards = ({ summary, topCats }) => {
     {
       label: 'Avg Daily Spend',
       numeric: avgDailySpend,
-      prefix: '₹',
+      prefix: currencySymbol,
       decimals: 0,
       sub: 'Per day this month',
       icon: (

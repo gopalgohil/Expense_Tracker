@@ -6,6 +6,7 @@ import { useExpenses }      from '../hooks/useExpenses'
 import { useBudgets }       from '../hooks/useBudgets'
 import { useAnalytics }     from '../hooks/useAnalytics'
 import Sidebar              from '../components/Sidebar'
+import Navbar               from '../components/Navbar'
 import ExpenseCard          from '../components/ExpenseCard'
 import ExpenseForm          from '../components/ExpenseForm'
 import StatsBar             from '../components/StatsBar'
@@ -18,7 +19,7 @@ import DailyBarChart        from '../components/DailyBarChart'
 import MonthCompareChart    from '../components/MonthCompareChart'
 import SearchFilterBar      from '../components/SearchFilterBar'
 import Pagination           from '../components/Pagination'
-import DarkModeToggle       from '../components/DarkModeToggle'
+import DateRangeSelector    from '../components/DateRangeSelector'
 import BudgetPanel          from './BudgetPanel'
 import Settings             from './Settings'
 import FadeInSection        from '../components/animations/FadeInSection'
@@ -51,83 +52,104 @@ const Dashboard = () => {
     expenses, allExpenses, pagination, loading, error,
     fetchExpenses, addExpense, editExpense, removeExpense, restoreExpense,
   } = useExpenses()
-  const { status, fetchBudgets, refreshStatus } = useBudgets()
+  const { status, loading: budgetsLoading, fetchBudgets, refreshStatus } = useBudgets()
   const { summary, topCats, dailyData, loading: analyticsLoading, error: analyticsError, fetchAnalytics } = useAnalytics()
 
   const location = useLocation()
   const navigate = useNavigate()
   const activeSection = (() => {
     const path = location.pathname.replace(/\/$/, '')
-    if (path === '/dashboard/add-expense') return 'add-expense'
-    if (path === '/dashboard/budgets')     return 'budgets'
-    if (path === '/dashboard/charts')      return 'charts'
-    if (path === '/dashboard/settings')    return 'settings'
+    if (path === '/expenses')    return 'expenses'
+    if (path === '/add-expense') return 'add-expense'
+    if (path === '/budgets')     return 'budgets'
+    if (path === '/charts')      return 'charts'
+    if (path === '/settings')    return 'settings'
     return 'dashboard'
   })()
   const [sidebarOpen,   setSidebarOpen]   = useState(false)
-  const [filters,    setFilters]    = useState({ month: currentMonth(), category: '' })
+  const [filters,    setFilters]    = useState({ category: '' })
+  const [dateRangeType, setDateRangeType] = useState('monthly')
+  const [month, setMonth] = useState(currentMonth())
+  const [year, setYear] = useState(() => String(new Date().getFullYear()))
+  const [customRange, setCustomRange] = useState({ startDate: '', endDate: '' })
   const [search,     setSearch]     = useState('')
   const [advanced,   setAdvanced]   = useState(DEFAULT_ADVANCED)
   const [page,       setPage]       = useState(1)
   const [addLoading, setAddLoading] = useState(false)
   const [newExpenseIds, setNewExpenseIds] = useState(new Set())
-  const notifiedRef = useRef(new Set())
 
   // Build full params object for API
   const buildParams = useCallback(() => {
-    const p = { ...filters, page, limit: 20, sortBy: advanced.sortBy }
+    const p = { category: filters.category, page, limit: 5, sortBy: advanced.sortBy }
     if (search)              p.search    = search
     if (advanced.minAmount)  p.minAmount = advanced.minAmount
     if (advanced.maxAmount)  p.maxAmount = advanced.maxAmount
+
+    if (dateRangeType === 'monthly') {
+      p.month = month
+    } else if (dateRangeType === 'yearly') {
+      p.year = year
+    } else if (dateRangeType === 'custom') {
+      if (customRange.startDate) p.startDate = customRange.startDate
+      if (customRange.endDate) p.endDate = customRange.endDate
+    } else if (dateRangeType === 'all') {
+      p.allTime = 'true'
+    }
     return p
-  }, [filters, search, advanced, page])
+  }, [filters.category, page, advanced.sortBy, search, advanced.minAmount, advanced.maxAmount, dateRangeType, month, year, customRange])
 
   // Helper to refresh all dashboard data (expenses, budgets, and analytics cards/charts)
   const refreshAllData = useCallback(async () => {
     await Promise.all([
       fetchExpenses(buildParams()),
-      fetchBudgets(filters.month),
-      fetchAnalytics(filters.month),
+      fetchBudgets(month),
+      fetchAnalytics(buildParams()),
     ])
-  }, [fetchExpenses, buildParams, fetchBudgets, fetchAnalytics, filters.month])
+  }, [fetchExpenses, buildParams, fetchBudgets, fetchAnalytics, month])
 
   // Fetch expenses whenever any filter/search/sort/page changes
   useEffect(() => {
     fetchExpenses(buildParams())
-  }, [filters, search, advanced, page])
+  }, [filters.category, search, advanced, page, dateRangeType, month, year, customRange])
 
-  // Fetch budgets + analytics only when MONTH changes (not on search/sort)
-  // Also reset budget notifications only on month change
+  // Fetch budgets + analytics only when DATE parameters change
   useEffect(() => {
-    fetchBudgets(filters.month)
-    fetchAnalytics(filters.month)
-    notifiedRef.current = new Set()   // reset only on month change
-  }, [filters.month])
+    fetchBudgets(month)
+    fetchAnalytics(buildParams())
+  }, [dateRangeType, month, year, customRange])
 
-  // Toast when budget crosses 90% — only fire once per category per session
+  // Toast when budget crosses 90% — only fire once per category per session/page refresh
   useEffect(() => {
     if (!status.length) return
     status.forEach((item) => {
-      if (item.percent >= 90 && !notifiedRef.current.has(item.category)) {
-        notifiedRef.current.add(item.category)
-        const over = item.percent >= 100
-        toast(
-          over
-            ? `🚨 ${item.category} is over budget! (${item.percent}%)`
-            : `⚠️ ${item.category} is at ${item.percent}% of budget`,
-          {
-            id: `budget-${item.category}`,   // prevent duplicate toasts
-            style: {
-              background: over ? '#fee2e2' : '#fef9c3',
-              color:      over ? '#b91c1c' : '#92400e',
-              border:     `1px solid ${over ? '#fca5a5' : '#fde68a'}`,
-            },
-            duration: 5000,
-          }
-        )
+      const storageKey = `budget-notified-${month}-${item.category}`
+      const alreadyNotified = sessionStorage.getItem(storageKey)
+
+      if (item.percent >= 90) {
+        if (!alreadyNotified) {
+          sessionStorage.setItem(storageKey, 'true')
+          const over = item.percent >= 100
+          toast(
+            over
+              ? `🚨 ${item.category} is over budget! (${item.percent}%)`
+              : `⚠️ ${item.category} is at ${item.percent}% of budget`,
+            {
+              id: `budget-${item.category}`,   // prevent duplicate toasts
+              style: {
+                background: over ? '#fee2e2' : '#fef9c3',
+                color:      over ? '#b91c1c' : '#92400e',
+                border:     `1px solid ${over ? '#fca5a5' : '#fde68a'}`,
+              },
+              duration: 5000,
+            }
+          )
+        }
+      } else {
+        // Reset if it drops below 90% (e.g. user deleted or edited an expense)
+        sessionStorage.removeItem(storageKey)
       }
     })
-  }, [status])
+  }, [status, month])
 
   const handleAdd = async (formData) => {
     setAddLoading(true)
@@ -155,7 +177,11 @@ const Dashboard = () => {
   }
 
   const handleResetAll = () => {
-    setFilters({ month: currentMonth(), category: '' })
+    setFilters({ category: '' })
+    setDateRangeType('monthly')
+    setMonth(currentMonth())
+    setYear(String(new Date().getFullYear()))
+    setCustomRange({ startDate: '', endDate: '' })
     setSearch('')
     setAdvanced(DEFAULT_ADVANCED)
     setPage(1)
@@ -202,11 +228,11 @@ const Dashboard = () => {
     return result
   }
 
-  const chartKey = `${filters.month}-${filters.category}-${search}`
+  const chartKey = `${dateRangeType}-${month}-${year}-${customRange.startDate}-${customRange.endDate}-${filters.category}-${search}`
 
   /* ─────────────────────────────────────────
      Content panels
-  ───────────────────────────────────────── */
+   ───────────────────────────────────────── */
 
   const renderContent = () => {
     switch (activeSection) {
@@ -215,13 +241,13 @@ const Dashboard = () => {
       case 'add-expense':
         return (
           <FadeInSection>
-            <div className="max-w-lg mx-auto">
+            <div className="w-full mt-6">
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-ink-800">Add Expense</h2>
                 <p className="text-sm text-ink-400 mt-1">Record a new transaction</p>
               </div>
               <motion.div
-                className="card p-6"
+                className="card p-8 md:p-10"
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
@@ -238,7 +264,7 @@ const Dashboard = () => {
 
       /* ── Budgets ── */
       case 'budgets':
-        return <BudgetPanel month={filters.month} onMonthChange={(m) => setFilters((p) => ({ ...p, month: m }))} />
+        return <BudgetPanel month={month} onMonthChange={(m) => setMonth(m)} />
 
       /* ── Settings ── */
       case 'settings':
@@ -255,8 +281,18 @@ const Dashboard = () => {
               </div>
             </FadeInSection>
             <div className="space-y-5">
-              {expenses.length > 0 ? (
-                <CategoryPieChart expenses={expenses} chartKey={chartKey} />
+              {loading ? (
+                <>
+                  <ChartSkeleton height={260} />
+                  <ChartSkeleton height={220} />
+                </>
+              ) : expenses.length > 0 ? (
+                <>
+                  <CategoryPieChart expenses={expenses} chartKey={chartKey} />
+                  {allExpenses.length > 0 && (
+                    <MonthlyBarChart expenses={allExpenses} chartKey={chartKey} />
+                  )}
+                </>
               ) : (
                 <FadeInSection>
                   <div className="card p-10 text-center">
@@ -264,27 +300,24 @@ const Dashboard = () => {
                   </div>
                 </FadeInSection>
               )}
-              {allExpenses.length > 0 && (
-                <MonthlyBarChart expenses={allExpenses} chartKey={chartKey} />
-              )}
             </div>
           </div>
         )
 
-      /* ── Dashboard (default) ── */
-      default:
+      /* ── Expenses List Page ── */
+      case 'expenses':
         return (
           <div className="space-y-5">
             <FadeInSection>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-ink-800">Dashboard</h2>
-                  <p className="text-sm text-ink-400 mt-0.5">Track and manage your spending</p>
+                  <h2 className="text-xl font-bold text-ink-800">Expenses</h2>
+                  <p className="text-sm text-ink-400 mt-0.5">Filter, search, and manage your transactions</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <ExportButtons filters={filters} />
+                <div className="flex items-center gap-2 self-start sm:self-auto w-full sm:w-auto justify-between sm:justify-start">
+                  <ExportButtons filters={{ dateRangeType, month, year, startDate: customRange.startDate, endDate: customRange.endDate, category: filters.category }} />
                   <HoverButton
-                    onClick={() => navigate('/dashboard/add-expense')}
+                    onClick={() => navigate('/add-expense')}
                     className="btn-primary flex items-center gap-1.5 text-sm"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,98 +329,33 @@ const Dashboard = () => {
               </div>
             </FadeInSection>
 
-            <FadeInSection delay={0.05}>
-              <div className="card p-4">
-                <div className="flex flex-wrap gap-3">
-                  <div className="flex-1 min-w-[140px]">
-                    <label className="label">Month</label>
-                    <input name="month" type="month" value={filters.month}
-                      onChange={(e) => { setFilters((p) => ({ ...p, month: e.target.value })); setPage(1) }}
-                      className="input-field"
-                      max={maxMonth()} />
-                  </div>
-                  <div className="flex-1 min-w-[140px]">
-                    <label className="label">Category</label>
-                    <select name="category" value={filters.category}
-                      onChange={(e) => { setFilters((p) => ({ ...p, category: e.target.value })); setPage(1) }}
-                      className="input-field bg-white">
-                      {CATEGORIES.map((c) => (
-                        <option key={c} value={c}>{c || 'All categories'}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-end">
-                    <HoverButton onClick={handleResetAll} className="btn-ghost text-sm py-3">
-                      Reset all
-                    </HoverButton>
-                  </div>
-                </div>
-              </div>
-            </FadeInSection>
-
-            <FadeInSection delay={0.08}>
+            <FadeInSection delay={0.06}>
               <SearchFilterBar
                 search={search}
                 onSearchChange={(v) => { setSearch(v); setPage(1) }}
+                month={month}
+                onMonthChange={(m) => { setMonth(m); setPage(1) }}
+                dateRangeType={dateRangeType}
+                onDateRangeTypeChange={(t) => { setDateRangeType(t); setPage(1) }}
+                year={year}
+                onYearChange={(y) => { setYear(y); setPage(1) }}
+                customRange={customRange}
+                onCustomRangeChange={(r) => { setCustomRange(r); setPage(1) }}
+                category={filters.category}
+                onCategoryChange={(c) => { setFilters((p) => ({ ...p, category: c })); setPage(1) }}
                 advanced={advanced}
                 onAdvancedChange={(v) => { setAdvanced((p) => ({ ...p, ...v })); setPage(1) }}
                 onReset={handleResetAll}
               />
             </FadeInSection>
 
-            {analyticsLoading ? (
-              <SummaryCardsSkeleton />
-            ) : analyticsError ? (
-              <FadeInSection delay={0.1}>
-                <div className="card p-6 text-center flex flex-col items-center justify-center border border-dashed border-ink-200">
-                  <p className="text-sm text-coral-strong font-medium flex items-center gap-2">
-                    <svg className="w-5 h-5 text-coral" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    Failed to load analytics: {analyticsError}
-                  </p>
-                  <HoverButton onClick={() => fetchAnalytics(filters.month)} className="btn-ghost mt-3 text-xs py-1.5 px-4">
-                    Try again
-                  </HoverButton>
-                </div>
-              </FadeInSection>
-            ) : (
-              <FadeInSection delay={0.1}>
-                <SummaryCards summary={summary} topCats={topCats} />
-              </FadeInSection>
-            )}
-
-            {!loading && expenses.length > 0 && (
+            {loading ? (
+              <StatsBarSkeleton />
+            ) : expenses.length > 0 ? (
               <FadeInSection delay={0.12}>
                 <StatsBar expenses={expenses} />
               </FadeInSection>
-            )}
-            {loading && !expenses.length && <StatsBarSkeleton />}
-
-            {status.length > 0 && (
-              <FadeInSection delay={0.14}>
-                <BudgetProgress status={status} />
-              </FadeInSection>
-            )}
-            {analyticsLoading && status.length === 0 && <BudgetSkeleton />}
-
-            {(dailyData.length > 0 || summary) && !analyticsError && (
-              <FadeInSection delay={0.16}>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                  {analyticsLoading ? (
-                    <>
-                      <ChartSkeleton />
-                      <ChartSkeleton />
-                    </>
-                  ) : (
-                    <>
-                      <DailyBarChart data={dailyData} chartKey={chartKey} />
-                      <MonthCompareChart summary={summary} chartKey={chartKey} />
-                    </>
-                  )}
-                </div>
-              </FadeInSection>
-            )}
+            ) : null}
 
             {loading ? (
               <ExpenseListSkeleton count={4} />
@@ -411,11 +379,11 @@ const Dashboard = () => {
                   </div>
                   <p className="text-ink-600 font-medium">No expenses found</p>
                   <p className="text-ink-400 text-sm mt-1">
-                    {filters.category || filters.month !== currentMonth()
+                    {filters.category || dateRangeType !== 'monthly' || month !== currentMonth()
                       ? 'Try adjusting your filters'
                       : 'Add your first expense to get started'}
                   </p>
-                  <HoverButton onClick={() => navigate('/dashboard/add-expense')}
+                  <HoverButton onClick={() => navigate('/add-expense')}
                     className="btn-primary mt-4 text-sm">Add expense</HoverButton>
                 </div>
               </FadeInSection>
@@ -445,6 +413,132 @@ const Dashboard = () => {
             )}
           </div>
         )
+
+      /* ── Dashboard (default) ── */
+      default:
+        return (
+          <div className="space-y-5">
+            <FadeInSection>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-ink-800">Dashboard</h2>
+                  <p className="text-sm text-ink-400 mt-0.5">Track and manage your spending</p>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 self-start sm:self-auto min-w-[280px] sm:min-w-[400px]">
+                  <DateRangeSelector
+                    dateRangeType={dateRangeType}
+                    onDateRangeTypeChange={(t) => { setDateRangeType(t); setPage(1) }}
+                    month={month}
+                    onMonthChange={(m) => { setMonth(m); setPage(1) }}
+                    year={year}
+                    onYearChange={(y) => { setYear(y); setPage(1) }}
+                    customRange={customRange}
+                    onCustomRangeChange={(r) => { setCustomRange(r); setPage(1) }}
+                  />
+                </div>
+              </div>
+            </FadeInSection>
+
+            {analyticsLoading ? (
+              <SummaryCardsSkeleton />
+            ) : analyticsError ? (
+              <FadeInSection delay={0.1}>
+                <div className="card p-6 text-center flex flex-col items-center justify-center border border-dashed border-ink-200">
+                  <p className="text-sm text-coral-strong font-medium flex items-center gap-2">
+                    <svg className="w-5 h-5 text-coral" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Failed to load analytics: {analyticsError}
+                  </p>
+                  <HoverButton onClick={() => fetchAnalytics(buildParams())} className="btn-ghost mt-3 text-xs py-1.5 px-4">
+                    Try again
+                  </HoverButton>
+                </div>
+              </FadeInSection>
+            ) : (
+              <FadeInSection delay={0.1}>
+                <SummaryCards summary={summary} topCats={topCats} />
+              </FadeInSection>
+            )}
+
+            {budgetsLoading ? (
+              <BudgetSkeleton />
+            ) : status.length > 0 ? (
+              <FadeInSection delay={0.14}>
+                <BudgetProgress status={status} />
+              </FadeInSection>
+            ) : null}
+
+            {!analyticsError && (analyticsLoading || dailyData.length > 0 || summary) && (
+              <FadeInSection delay={0.16}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {analyticsLoading ? (
+                    <>
+                      <ChartSkeleton />
+                      <ChartSkeleton />
+                    </>
+                  ) : (
+                    <>
+                      <DailyBarChart data={dailyData} chartKey={chartKey} />
+                      <MonthCompareChart summary={summary} chartKey={chartKey} />
+                    </>
+                  )}
+                </div>
+              </FadeInSection>
+            )}
+
+            <FadeInSection delay={0.18}>
+              <div className="card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-md font-bold text-ink-800">Recent Expenses</h3>
+                </div>
+                {loading ? (
+                  <ExpenseListSkeleton count={3} />
+                ) : expenses.length === 0 ? (
+                  <div className="py-6 text-center">
+                    <p className="text-ink-400 text-sm">No expenses recorded for this period.</p>
+                    <HoverButton
+                      onClick={() => navigate('/add-expense')}
+                      className="btn-primary mt-3 text-xs py-1.5"
+                    >
+                      Add expense
+                    </HoverButton>
+                  </div>
+                ) : (
+                  <>
+                    <AnimatedList className="space-y-2.5">
+                      {expenses.slice(0, 3).map((expense, index) => (
+                        <ListItem
+                          key={expense._id}
+                          index={index}
+                          isNew={newExpenseIds.has(expense._id)}
+                        >
+                          <ExpenseCard
+                            expense={expense}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            isNew={newExpenseIds.has(expense._id)}
+                          />
+                        </ListItem>
+                      ))}
+                    </AnimatedList>
+                    <div className="mt-4 pt-4 border-t border-ink-100 flex justify-center">
+                      <HoverButton
+                        onClick={() => navigate('/expenses')}
+                        className="btn-ghost text-xs py-2 px-6 border border-ink-200 text-ink-600 hover:text-ink-800 hover:bg-ink-50 font-semibold rounded-xl flex items-center gap-1.5"
+                      >
+                        View All Expenses
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </HoverButton>
+                    </div>
+                  </>
+                )}
+              </div>
+            </FadeInSection>
+          </div>
+        )
     }
   }
 
@@ -470,7 +564,7 @@ const Dashboard = () => {
       `}>
         <Sidebar
           active={activeSection}
-          setActive={(section) => navigate(section === 'dashboard' ? '/dashboard' : `/dashboard/${section}`)}
+          setActive={(section) => navigate(section === 'dashboard' ? '/dashboard' : `/${section}`)}
           onClose={() => setSidebarOpen(false)}
         />
       </aside>
@@ -478,24 +572,11 @@ const Dashboard = () => {
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
-        {/* Top bar (mobile only) */}
-        <header className="lg:hidden bg-white border-b border-ink-100 h-14 flex items-center px-4 flex-shrink-0">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-xl text-ink-500 hover:bg-ink-100 transition-colors mr-3"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-2 flex-1">
-            <img src="/favicon.png" alt="Spendwise logo" className="w-7 h-7 rounded-lg object-cover" />
-            <span className="font-bold text-ink-800">Spendwise</span>
-          </div>
-          {/* Dark mode toggle in mobile header */}
-          <DarkModeToggle />
-        </header>
+        {/* Top Navbar */}
+        <Navbar
+          onMenuClick={() => setSidebarOpen(true)}
+          activeSection={activeSection}
+        />
 
         {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">

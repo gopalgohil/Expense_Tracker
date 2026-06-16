@@ -1,19 +1,66 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { useBudgets } from '../hooks/useBudgets'
+import { useCurrency } from '../hooks/useCurrency'
 
 const CATEGORIES = [
   'Food & Dining', 'Transport', 'Shopping', 'Entertainment',
   'Health', 'Utilities', 'Housing', 'Education', 'Travel', 'Other',
 ]
 
+const MONTHS = [
+  { label: 'Jan', value: 1 },
+  { label: 'Feb', value: 2 },
+  { label: 'Mar', value: 3 },
+  { label: 'Apr', value: 4 },
+  { label: 'May', value: 5 },
+  { label: 'Jun', value: 6 },
+  { label: 'Jul', value: 7 },
+  { label: 'Aug', value: 8 },
+  { label: 'Sep', value: 9 },
+  { label: 'Oct', value: 10 },
+  { label: 'Nov', value: 11 },
+  { label: 'Dec', value: 12 },
+]
+
 const BudgetPanel = ({ month, onMonthChange }) => {
+  const { currencySymbol, formatMoney } = useCurrency()
   const { budgets, loading, fetchBudgets, saveBudget, removeBudget } = useBudgets()
   const [form,      setForm]      = useState({ category: '', limit: '' })
   const [editingId, setEditingId] = useState(null)   // null = add mode, id = edit mode
   const [saving,    setSaving]    = useState(false)
 
+  // Custom month picker state
+  const [isOpen, setIsOpen] = useState(false)
+  const today = new Date()
+  const currentYear = today.getFullYear()
+  const currentMonthNum = today.getMonth() + 1
+  const [viewingYear, setViewingYear] = useState(() => {
+    const [y] = month.split('-')
+    return parseInt(y) || currentYear
+  })
+
+  // Synchronize viewing year when month changes
+  useEffect(() => {
+    const [y] = month.split('-')
+    if (y) setViewingYear(parseInt(y))
+  }, [month])
+
+  useEffect(() => {
+    const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+    if (month < currentMonthStr) {
+      onMonthChange(currentMonthStr)
+    }
+  }, [])
+
   useEffect(() => { fetchBudgets(month) }, [month])
+
+  const getSelectedMonthLabel = () => {
+    const [y, m] = month.split('-')
+    const monthIndex = parseInt(m) - 1
+    const d = new Date(Date.UTC(parseInt(y), monthIndex, 1))
+    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  }
 
   // Pre-fill form when user clicks Edit
   const handleEdit = (b) => {
@@ -30,6 +77,11 @@ const BudgetPanel = ({ month, onMonthChange }) => {
 
   const handleSave = async (e) => {
     e.preventDefault()
+    const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+    if (month < currentMonthStr) {
+      toast.error('Budgets cannot be created for past dates.')
+      return
+    }
     if (!form.category || !form.limit) { toast.error('Select a category and enter a limit'); return }
     if (Number(form.limit) <= 0)       { toast.error('Limit must be greater than 0'); return }
 
@@ -67,13 +119,111 @@ const BudgetPanel = ({ month, onMonthChange }) => {
 
       {/* Month picker */}
       <div className="card p-4">
-        <label className="label">Select Month</label>
-        <input
-          type="month" value={month}
-          onChange={(e) => { onMonthChange(e.target.value); handleCancel() }}
-          className="input-field max-w-[180px]"
-          max={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`}
-        />
+        <div className="relative inline-block text-left w-full sm:w-auto">
+          <label className="label mb-1.5 block">Select Month</label>
+          
+          {/* Trigger Button */}
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center justify-between w-full sm:w-56 h-12 px-4 rounded-xl border border-ink-200 bg-white text-sm font-medium text-ink-700 shadow-sm hover:border-ink-300 focus:outline-none transition-all duration-200"
+          >
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {getSelectedMonthLabel()}
+            </span>
+            <svg className={`w-4 h-4 text-ink-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Dropdown Card */}
+          {isOpen && (
+            <>
+              {/* Backdrop to close on click outside */}
+              <div 
+                className="fixed inset-0 z-10" 
+                onClick={() => setIsOpen(false)}
+              />
+              
+              <div className="absolute left-0 mt-2 w-72 rounded-2xl border border-ink-150 bg-white shadow-xl z-20 overflow-hidden transform origin-top-left transition-all duration-200 p-4">
+                {/* Year Selector Header */}
+                <div className="flex items-center justify-between mb-4 border-b border-ink-100 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewingYear(p => p - 1)}
+                    disabled={viewingYear <= currentYear}
+                    className={`p-1.5 rounded-lg transition-all ${
+                      viewingYear <= currentYear 
+                        ? 'text-ink-200 cursor-not-allowed' 
+                        : 'text-ink-500 hover:bg-ink-50 hover:text-ink-800'
+                    }`}
+                    title="Previous Year"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  
+                  <span className="text-base font-bold text-ink-800 tracking-wide">
+                    {viewingYear}
+                  </span>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setViewingYear(p => p + 1)}
+                    className="p-1.5 text-ink-500 hover:bg-ink-50 hover:text-ink-800 rounded-lg transition-all"
+                    title="Next Year"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Month Grid */}
+                <div className="grid grid-cols-3 gap-2">
+                  {MONTHS.map((m) => {
+                    const isPast = viewingYear < currentYear || (viewingYear === currentYear && m.value < currentMonthNum)
+                    const [selY, selM] = month.split('-').map(Number)
+                    const isSelected = selY === viewingYear && selM === m.value
+                    const isCurrent = currentYear === viewingYear && currentMonthNum === m.value
+
+                    return (
+                      <button
+                        key={m.value}
+                        type="button"
+                        disabled={isPast}
+                        onClick={() => {
+                          const monthStr = `${viewingYear}-${String(m.value).padStart(2, '0')}`
+                          onMonthChange(monthStr)
+                          handleCancel()
+                          setIsOpen(false)
+                        }}
+                        className={`relative py-3 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all duration-150 ${
+                          isSelected
+                            ? 'bg-sage text-white shadow-sm font-bold scale-95'
+                            : isPast
+                              ? 'text-ink-300 cursor-not-allowed bg-ink-25/45 opacity-50'
+                              : isCurrent
+                                ? 'border border-sage text-sage-dark hover:bg-sage-light hover:text-sage-dark'
+                                : 'text-ink-600 hover:bg-ink-50 hover:text-ink-800'
+                        }`}
+                      >
+                        {m.label}
+                        {isCurrent && !isSelected && (
+                          <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-sage" />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Add / Edit form */}
@@ -109,9 +259,9 @@ const BudgetPanel = ({ month, onMonthChange }) => {
           </div>
 
           <div className="flex-1 min-w-[130px]">
-            <label className="label">Monthly limit (₹)</label>
+            <label className="label">Monthly limit ({currencySymbol})</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 font-mono text-sm">₹</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 font-mono text-sm">{currencySymbol}</span>
               <input
                 type="number" min="1" step="1" placeholder="0"
                 value={form.limit}
@@ -156,11 +306,11 @@ const BudgetPanel = ({ month, onMonthChange }) => {
             {budgets.map((b) => (
               <div key={b._id}
                 className={`flex items-center justify-between rounded-xl px-4 py-3 transition-colors
-                  ${editingId === b._id ? 'bg-sage-light border border-sage' : 'bg-ink-50'}`}>
+                ${editingId === b._id ? 'bg-sage-light border border-sage' : 'bg-ink-50'}`}>
                 <span className="text-sm font-medium text-ink-700">{b.category}</span>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm font-semibold text-ink-800">
-                    ₹{b.limit.toLocaleString('en-IN')}
+                    {formatMoney(b.limit, 0)}
                   </span>
 
                   {/* Edit button */}

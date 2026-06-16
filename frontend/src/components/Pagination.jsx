@@ -15,30 +15,25 @@ const Pagination = ({ pagination, onPageChange }) => {
   }
   for (let i = start; i <= end; i++) pages.push(i)
 
-  const btnBase = {
-    minWidth: 36, height: 36, borderRadius: 10,
-    border: '1px solid #e8e6df', background: '#fff',
-    cursor: 'pointer', fontSize: 13, fontWeight: 500,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    transition: 'all 0.15s',
-  }
+  const btnClass = "px-3 py-2 min-w-[36px] h-9 rounded-xl border border-ink-200 dark:border-gray-700 bg-white dark:bg-[#1e2130] text-ink-800 dark:text-gray-300 font-medium text-xs flex items-center justify-center hover:bg-ink-50 dark:hover:bg-gray-800 hover:border-sage transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+  const activeBtnClass = "px-3 py-2 min-w-[36px] h-9 rounded-xl bg-sage text-white font-bold text-xs flex items-center justify-center border border-sage"
 
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, paddingTop:8 }}>
+    <div className="flex items-center justify-between flex-wrap gap-3 pt-6 border-t border-ink-100 mt-4">
       {/* Info */}
-      <p style={{ fontSize:12, color:'#7a7670' }}>
-        Showing <strong>{from}–{to}</strong> of <strong>{total}</strong> expenses
+      <p className="text-xs text-ink-500">
+        Showing <strong className="text-ink-800 dark:text-gray-300 font-semibold">{from}–{to}</strong> of <strong className="text-ink-800 dark:text-gray-300 font-semibold">{total}</strong> expenses
       </p>
 
       {/* Controls */}
-      <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+      <div className="flex gap-1.5 items-center">
         {/* Prev */}
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page === 1}
-          style={{ ...btnBase, opacity: page === 1 ? 0.4 : 1 }}
+          className={btnClass}
         >
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
         </button>
@@ -46,8 +41,8 @@ const Pagination = ({ pagination, onPageChange }) => {
         {/* First page if not in range */}
         {start > 1 && (
           <>
-            <button onClick={() => onPageChange(1)} style={btnBase}>1</button>
-            {start > 2 && <span style={{ color:'#9ca3af', padding:'0 4px' }}>…</span>}
+            <button onClick={() => onPageChange(1)} className={btnClass}>1</button>
+            {start > 2 && <span className="text-ink-400 dark:text-gray-500 px-1">…</span>}
           </>
         )}
 
@@ -56,13 +51,7 @@ const Pagination = ({ pagination, onPageChange }) => {
           <button
             key={p}
             onClick={() => onPageChange(p)}
-            style={{
-              ...btnBase,
-              background:   p === page ? '#4a7c59' : '#fff',
-              color:        p === page ? '#fff'    : '#0f0e0c',
-              borderColor:  p === page ? '#4a7c59' : '#e8e6df',
-              fontWeight:   p === page ? 700       : 500,
-            }}
+            className={p === page ? activeBtnClass : btnClass}
           >
             {p}
           </button>
@@ -71,8 +60,8 @@ const Pagination = ({ pagination, onPageChange }) => {
         {/* Last page if not in range */}
         {end < totalPages && (
           <>
-            {end < totalPages - 1 && <span style={{ color:'#9ca3af', padding:'0 4px' }}>…</span>}
-            <button onClick={() => onPageChange(totalPages)} style={btnBase}>{totalPages}</button>
+            {end < totalPages - 1 && <span className="text-ink-400 dark:text-gray-500 px-1">…</span>}
+            <button onClick={() => onPageChange(totalPages)} className={btnClass}>{totalPages}</button>
           </>
         )}
 
@@ -80,9 +69,9 @@ const Pagination = ({ pagination, onPageChange }) => {
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page === totalPages}
-          style={{ ...btnBase, opacity: page === totalPages ? 0.4 : 1 }}
+          className={btnClass}
         >
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
           </svg>
         </button>

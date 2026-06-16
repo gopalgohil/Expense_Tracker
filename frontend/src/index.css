@@ -136,3 +136,53 @@ input, textarea, select, button svg {
 .dark ::-webkit-scrollbar { width: 6px; }
 .dark ::-webkit-scrollbar-track { background: #0f1117; }
 .dark ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+
+/* ── Premium Animated Border Glow for Login & Registration Cards ── */
+@keyframes border-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-border-glowing {
+  position: relative;
+  border-radius: 24px;
+  padding: 1.5px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.03);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08), 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.animate-border-glowing:hover {
+  box-shadow: 0 20px 50px -12px rgba(74, 124, 89, 0.15), 0 4px 16px -4px rgba(74, 124, 89, 0.08);
+}
+
+.animate-border-glowing::before {
+  content: '';
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 30%,
+    #4a7c59 50%,
+    #80c8a8 70%,
+    transparent 90%
+  );
+  animation: border-spin 6s linear infinite;
+  z-index: 0;
+}
+
+.animate-border-glowing-inner {
+  position: relative;
+  background: #ffffff;
+  border-radius: 22.5px;
+  padding: 40px 32px;
+  z-index: 10;
+}
+
+.dark .animate-border-glowing-inner {
+  background: #11131e !important;
+}

@@ -1,5 +1,6 @@
 import jwt  from 'jsonwebtoken';
 import User from '../models/User.js';
+import { sendEmail } from '../utils/sendEmail.js';
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -141,5 +142,123 @@ export const updateAvatar = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: error.message || 'Failed to update avatar' });
+  }
+};
+
+// POST /api/auth/forgot-password
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    if (!email) {
+      return res.status(400).json({ message: 'Please provide a registered email address' });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: trimmedEmail });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email address' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.resetPasswordOTP = otp;
+    user.resetPasswordOTPExpires = otpExpiry;
+    await user.save();
+
+    // Send email
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+        <h2 style="color: #4f46e5; text-align: center; margin-bottom: 24px;">Reset Your Password</h2>
+        <p>Hello,</p>
+        <p>We received a request to reset your password for your Spendwise account. Please use the following 6-digit One-Time Password (OTP) to reset your password. This OTP is valid for 10 minutes.</p>
+        <div style="background-color: #f3f4f6; padding: 16px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 6px; border-radius: 8px; margin: 24px 0; color: #1f2937; border: 1px solid #e5e7eb;">
+          ${otp}
+        </div>
+        <p style="color: #6b7280; font-size: 14px;">If you did not request this, you can safely ignore this email.</p>
+        <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+        <p style="font-size: 14px; color: #9ca3af; text-align: center;">Spendwise — Your Personal Expense Tracker</p>
+      </div>
+    `;
+
+    await sendEmail({
+      to: user.email,
+      subject: 'Spendwise Password Reset OTP',
+      html,
+    });
+
+    return res.status(200).json({ message: 'OTP sent successfully to your email' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: error.message || 'Server error sending password reset OTP' });
+  }
+};
+
+// POST /api/auth/verify-otp
+export const verifyOTP = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Please provide email and OTP' });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: trimmedEmail });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.resetPasswordOTP || user.resetPasswordOTP !== otp.trim()) {
+      return res.status(400).json({ message: 'Incorrect OTP. Please check and try again.' });
+    }
+
+    if (new Date() > user.resetPasswordOTPExpires) {
+      return res.status(400).json({ message: 'This OTP has expired. Please request a new one.' });
+    }
+
+    return res.status(200).json({ message: 'OTP verified successfully' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: error.message || 'Server error verifying OTP' });
+  }
+};
+
+// POST /api/auth/reset-password
+export const resetPassword = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  try {
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Please provide email, OTP, and new password' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: trimmedEmail });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.resetPasswordOTP || user.resetPasswordOTP !== otp.trim()) {
+      return res.status(400).json({ message: 'Invalid OTP session' });
+    }
+
+    if (new Date() > user.resetPasswordOTPExpires) {
+      return res.status(400).json({ message: 'OTP session has expired' });
+    }
+
+    // Set password (this will trigger schema pre-save hook to hash password)
+    user.password = newPassword;
+    user.resetPasswordOTP = null;
+    user.resetPasswordOTPExpires = null;
+    await user.save();
+
+    return res.status(200).json({ message: 'Password reset successfully. You can now log in.' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: error.message || 'Server error resetting password' });
   }
 };

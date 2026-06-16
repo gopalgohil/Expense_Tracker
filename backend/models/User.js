@@ -30,6 +30,14 @@ const userSchema = new mongoose.Schema(
       enum: ['INR', 'USD', 'EUR'],
       default: 'INR',
     },
+    resetPasswordOTP: {
+      type: String,
+      default: null,
+    },
+    resetPasswordOTPExpires: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -2,20 +2,20 @@ import { Parser } from 'json2csv';
 import PDFDocument from 'pdfkit';
 import Expense from '../models/Expense.js';
 import User from '../models/User.js';
+import { getPeriodRanges } from '../utils/dateHelper.js';
 
 // ── Helpers ─────────────────────────────────────────────────────
 const fetchFiltered = async (userId, query) => {
-  const { month, category } = query;
+  const { category } = query;
   const dbQuery = { userId };
   if (category) dbQuery.category = category;
-  if (month) {
-    const [year, m] = month.split('-').map(Number);
-    if (!isNaN(year) && !isNaN(m) && m >= 1 && m <= 12) {
-      dbQuery.date = {
-        $gte: new Date(Date.UTC(year, m - 1, 1)),
-        $lt:  new Date(Date.UTC(year, m, 1)),
-      };
-    }
+  
+  const ranges = getPeriodRanges(query);
+  if (ranges.current) {
+    dbQuery.date = {
+      $gte: ranges.current.start,
+      $lt:  ranges.current.end,
+    };
   }
   return Expense.find(dbQuery).sort({ date: -1 });
 };
@@ -41,9 +41,10 @@ export const exportCSV = async (req, res) => {
       Recurring:   e.isRecurring ? e.recurrenceInterval : 'No',
     }));
 
+    const ranges = getPeriodRanges(req.query);
     const parser = new Parser({ fields: ['Date', 'Category', 'Amount', 'Description', 'Recurring'] });
     const csv    = parser.parse(rows);
-    const filename = `spendwise-expenses-${req.query.month || 'all'}.csv`;
+    const filename = `spendwise-expenses-${ranges.periodLabel.toLowerCase().replace(/[^a-z0-9]/g, '-')}.csv`;
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(csv);
@@ -71,7 +72,8 @@ export const exportPDF = async (req, res) => {
     }, {});
     const sortedCat = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
 
-    const filename = `spendwise-expenses-${req.query.month || 'all'}.pdf`;
+    const ranges = getPeriodRanges(req.query);
+    const filename = `spendwise-expenses-${ranges.periodLabel.toLowerCase().replace(/[^a-z0-9]/g, '-')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
@@ -105,7 +107,7 @@ export const exportPDF = async (req, res) => {
     const metaRows = [
       ['Name',   user.name],
       ['Email',  user.email],
-      ['Period', req.query.month || 'All time'],
+      ['Period', ranges.periodLabel],
       ['Total',  fmtAmt(total)],
     ];
     metaRows.forEach(([label, value], i) => {

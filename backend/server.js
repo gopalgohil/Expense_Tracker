@@ -95,3 +95,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Local:   http://localhost:${PORT}`);
   console.log(`Network: http://192.168.0.91:${PORT}`);
 });
+
+// Trigger reload to restart the server under the original nodemon process

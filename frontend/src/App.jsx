@@ -7,27 +7,53 @@ import ProtectedRoute    from './components/ProtectedRoute'
 import PageTransition    from './components/animations/PageTransition'
 import Login             from './pages/Login'
 import Register          from './pages/Register'
+import ForgotPassword    from './pages/ForgotPassword'
 import Dashboard         from './pages/Dashboard'
-import BudgetSettings    from './pages/BudgetSettings'
 
 // AnimatePresence needs location from inside BrowserRouter
 const AnimatedRoutes = () => {
   const location = useLocation()
+  const isDashboardRoute = ['/dashboard', '/expenses', '/add-expense', '/budgets', '/charts', '/settings'].includes(location.pathname)
+  const routeKey = isDashboardRoute ? 'dashboard-group' : location.pathname
+
   return (
     <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname.split('/')[1] || 'root'}>
+      <Routes location={location} key={routeKey}>
         <Route path="/login"     element={<PageTransition><Login /></PageTransition>} />
         <Route path="/register"  element={<PageTransition><Register /></PageTransition>} />
-        <Route path="/dashboard/*" element={
+        <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+        
+        <Route path="/dashboard" element={
           <ProtectedRoute>
             <PageTransition><Dashboard /></PageTransition>
           </ProtectedRoute>
         } />
-        <Route path="/budgets"   element={
+        <Route path="/expenses" element={
           <ProtectedRoute>
-            <PageTransition><BudgetSettings /></PageTransition>
+            <PageTransition><Dashboard /></PageTransition>
           </ProtectedRoute>
         } />
+        <Route path="/add-expense" element={
+          <ProtectedRoute>
+            <PageTransition><Dashboard /></PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/budgets" element={
+          <ProtectedRoute>
+            <PageTransition><Dashboard /></PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/charts" element={
+          <ProtectedRoute>
+            <PageTransition><Dashboard /></PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <PageTransition><Dashboard /></PageTransition>
+          </ProtectedRoute>
+        } />
+
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AnimatePresence>

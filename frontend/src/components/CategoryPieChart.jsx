@@ -1,6 +1,7 @@
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
+import { useCurrency } from '../hooks/useCurrency'
 
 const COLORS = {
   'Food & Dining': '#d4a017',
@@ -18,13 +19,14 @@ const COLORS = {
 import AnimatedChart from './animations/AnimatedChart'
 
 const CustomTooltip = ({ active, payload }) => {
+  const { formatMoney } = useCurrency()
   if (!active || !payload?.length) return null
   const { name, value } = payload[0]
   return (
     <div className="bg-white border border-ink-100 rounded-xl shadow-lift px-3 py-2 text-xs">
       <p className="font-medium text-ink-700">{name}</p>
       <p className="text-ink-500 font-mono mt-0.5">
-        ₹{Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        {formatMoney(value)}
       </p>
     </div>
   )

@@ -9,7 +9,16 @@ const api = axios.create({
 // Auth via HttpOnly jwt cookie — profile fetched from /auth/me, kept in memory only
 
 // Auto-logout on 401
-const SKIP_REDIRECT = ['/user/delete-account', '/user/change-password', '/auth/me', '/auth/login', '/auth/register']
+const SKIP_REDIRECT = [
+  '/user/delete-account',
+  '/user/change-password',
+  '/auth/me',
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/verify-otp',
+  '/auth/reset-password'
+]
 
 api.interceptors.response.use(
   (res) => res,
@@ -17,7 +26,7 @@ api.interceptors.response.use(
     const url       = err.config?.url || ''
     const pathname  = window.location.pathname
     const isSkipped = SKIP_REDIRECT.some((path) => url.includes(path))
-    const onAuthPage = pathname === '/login' || pathname === '/register'
+    const onAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password'
 
     if (err.response?.status === 401 && !isSkipped && !onAuthPage) {
       // No localStorage to clear — cookies are cleared by server on logout
@@ -28,10 +37,13 @@ api.interceptors.response.use(
 )
 
 // ── Auth ────────────────────────────────────────
-export const register = (data) => api.post('/auth/register', data)
-export const login    = (data) => api.post('/auth/login',    data)
-export const logout   = ()     => api.post('/auth/logout')
-export const getMe    = ()     => api.get('/auth/me')
+export const register       = (data) => api.post('/auth/register', data)
+export const login          = (data) => api.post('/auth/login',    data)
+export const logout         = ()     => api.post('/auth/logout')
+export const getMe          = ()     => api.get('/auth/me')
+export const forgotPassword = (data) => api.post('/auth/forgot-password', data)
+export const verifyOTP      = (data) => api.post('/auth/verify-otp',      data)
+export const resetPassword  = (data) => api.post('/auth/reset-password',   data)
 
 // ── Expenses ─────────────────────────────────────
 export const getExpenses    = (params)   => api.get('/expenses',    { params })

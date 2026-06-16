@@ -2,16 +2,18 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
+import { useCurrency } from '../hooks/useCurrency'
 
 import AnimatedChart from './animations/AnimatedChart'
 
 const CustomTooltip = ({ active, payload, label }) => {
+  const { formatMoney } = useCurrency()
   if (!active || !payload?.length) return null
   return (
     <div className="bg-white border border-ink-100 rounded-xl shadow-lift px-3 py-2 text-xs">
       <p className="font-medium text-ink-700">{label}</p>
       <p className="text-ink-500 font-mono mt-0.5">
-        ₹{Number(payload[0].value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        {formatMoney(payload[0].value)}
       </p>
     </div>
   )
@@ -39,6 +41,7 @@ const buildMonthlyData = (expenses) => {
 }
 
 const MonthlyBarChart = ({ expenses, chartKey = 'monthly' }) => {
+  const { currencySymbol } = useCurrency()
   const data = buildMonthlyData(expenses)
 
   if (!data.length) return null
@@ -60,7 +63,7 @@ const MonthlyBarChart = ({ expenses, chartKey = 'monthly' }) => {
               tick={{ fontSize: 11, fill: '#7a7670' }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+              tickFormatter={(v) => `${currencySymbol}${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
               width={48}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f5f4f0' }} />
