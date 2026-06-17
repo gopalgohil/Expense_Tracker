@@ -38,6 +38,18 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    registerOTP: {
+      type: String,
+      default: null,
+    },
+    registerOTPExpires: {
+      type: Date,
+      default: null,
+    },
+    registerOTPVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

@@ -55,11 +55,11 @@ export const AuthProvider = ({ children }) => {
     } finally { setLoading(false) }
   }
 
-  const register = async (name, email, password) => {
+  const register = async (name, email, password, preHashed = false) => {
     setLoading(true)
     try {
-      const hashedPassword = await hashPassword(password)
-      await apiRegister({ name, email, password: hashedPassword })
+      const finalPassword = preHashed ? password : await hashPassword(password)
+      await apiRegister({ name, email, password: finalPassword })
       return { success: true }
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Registration failed' }

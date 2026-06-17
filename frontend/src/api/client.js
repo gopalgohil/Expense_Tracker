@@ -17,7 +17,9 @@ const SKIP_REDIRECT = [
   '/auth/register',
   '/auth/forgot-password',
   '/auth/verify-otp',
-  '/auth/reset-password'
+  '/auth/reset-password',
+  '/auth/send-register-otp',
+  '/auth/verify-register-otp',
 ]
 
 api.interceptors.response.use(
@@ -41,9 +43,11 @@ export const register = (data) => api.post('/auth/register', data)
 export const login    = (data) => api.post('/auth/login',    data)
 export const logout   = ()     => api.post('/auth/logout')
 export const getMe    = ()     => api.get('/auth/me')
-export const forgotPassword = (data) => api.post('/auth/forgot-password', data)
-export const verifyOTP      = (data) => api.post('/auth/verify-otp',      data)
-export const resetPassword  = (data) => api.post('/auth/reset-password',  data)
+export const forgotPassword     = (data) => api.post('/auth/forgot-password',     data)
+export const verifyOTP          = (data) => api.post('/auth/verify-otp',          data)
+export const resetPassword      = (data) => api.post('/auth/reset-password',      data)
+export const sendRegisterOTP    = (data) => api.post('/auth/send-register-otp',   data)
+export const verifyRegisterOTP  = (data) => api.post('/auth/verify-register-otp', data)
 
 // ── Expenses ─────────────────────────────────────
 export const getExpenses    = (params)   => api.get('/expenses',    { params })

@@ -30,13 +30,7 @@ const Login = () => {
   const [forgotErrors, setForgotErrors] = useState({})
   const [forgotSubmitting, setForgotSubmitting] = useState(false)
 
-  if (initializing) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-ink-50 dark:bg-zinc-950">
-        <div className="w-8 h-8 border-2 border-sage border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
+  if (initializing) return null
 
   // Already logged in → go to dashboard
   if (user) {
@@ -206,8 +200,8 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-ink-50 dark:bg-zinc-950 flex flex-row">
-      {/* Left panel (desktop only) */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between bg-[#1e3825] p-12 text-white relative overflow-hidden">
+      {/* Left panel */}
+      <div className="flex w-1/2 flex-col justify-between bg-[#1e3825] p-12 text-white relative overflow-hidden">
         {/* Subtle background blurs */}
         <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
         <div className="absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] rounded-full bg-emerald-600/10 blur-[120px] pointer-events-none" />
@@ -262,16 +256,6 @@ const Login = () => {
       {/* Right panel (Form) */}
       <div className="w-full lg:w-1/2 min-h-screen flex flex-col justify-center items-center p-8 bg-zinc-50 dark:bg-zinc-950">
         
-        {/* Mobile Logo */}
-        <div className="lg:hidden text-center mb-8">
-          <div className="w-11 h-11 bg-[#1e3825] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-extrabold text-[#1e3825] dark:text-emerald-400 tracking-tight">Spendwise</h1>
-        </div>
 
         <div className="card p-8 w-full max-w-[440px] shadow-lift border border-sage/20 dark:border-zinc-800">
           <div className="mb-6">
