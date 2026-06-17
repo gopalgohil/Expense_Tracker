@@ -1,4 +1,4 @@
-import React from 'react'
+import { forwardRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 /* Stagger container for list rows */
@@ -17,7 +17,7 @@ export const ListContainer = ({ children, className = '' }) => (
 )
 
 /* Each row — slide in, green highlight when new, collapse on delete */
-export const ListItem = React.forwardRef(({ children, layout = true, isNew = false, index = 0 }, ref) => (
+export const ListItem = forwardRef(({ children, layout = true, isNew = false, index = 0 }, ref) => (
   <motion.div
     ref={ref}
     layout={layout}
@@ -35,6 +35,8 @@ export const ListItem = React.forwardRef(({ children, layout = true, isNew = fal
     {children}
   </motion.div>
 ))
+
+ListItem.displayName = 'ListItem'
 
 /* Wraps AnimatePresence + stagger for expense lists */
 export const AnimatedList = ({ children, className = '' }) => (

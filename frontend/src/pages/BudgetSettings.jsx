@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
 import { useBudgets } from '../hooks/useBudgets'
-import { useCurrency } from '../hooks/useCurrency'
 
 const CATEGORIES = [
   'Food & Dining', 'Transport', 'Shopping', 'Entertainment',
@@ -16,7 +15,6 @@ const currentMonth = () => {
 }
 
 const BudgetSettings = () => {
-  const { currencySymbol, formatMoney } = useCurrency()
   const navigate                                        = useNavigate()
   const { budgets, loading, fetchBudgets, saveBudget, removeBudget } = useBudgets()
   const [month,   setMonth]   = useState(currentMonth())
@@ -92,9 +90,9 @@ const BudgetSettings = () => {
               </select>
             </div>
             <div className="flex-1 min-w-[130px]">
-              <label className="label">Monthly limit ({currencySymbol})</label>
+              <label className="label">Monthly limit (₹)</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 font-mono text-sm">{currencySymbol}</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 font-mono text-sm">₹</span>
                 <input
                   type="number" min="1" step="1" placeholder="0"
                   value={form.limit}
@@ -130,7 +128,7 @@ const BudgetSettings = () => {
                   <span className="text-sm font-medium text-ink-700">{b.category}</span>
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-sm text-ink-800">
-                      {formatMoney(b.limit, 0)}
+                      ₹{b.limit.toLocaleString('en-IN')}
                     </span>
                     <button
                       onClick={() => handleDelete(b._id, b.category)}

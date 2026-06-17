@@ -1,4 +1,5 @@
-// Sidebar component focusing purely on navigation links
+import { useAuth } from '../context/AuthContext'
+import DarkModeToggle from './DarkModeToggle'
 
 const NAV = [
   {
@@ -17,7 +18,7 @@ const NAV = [
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
       </svg>
     ),
   },
@@ -26,8 +27,7 @@ const NAV = [
     label: 'Add Expense',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M12 4v16m8-8H4" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
       </svg>
     ),
   },
@@ -42,8 +42,8 @@ const NAV = [
     ),
   },
   {
-    key: 'charts',
-    label: 'Charts',
+    key: 'reports',
+    label: 'Reports',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -55,16 +55,20 @@ const NAV = [
   },
 ]
 
-const Sidebar = ({ active, setActive, onClose }) => {
+const Sidebar = ({ active, setActive, onAddExpenseClick, onClose }) => {
   const handleNav = (key) => {
-    setActive(key)
+    if (key === 'add-expense') {
+      if (onAddExpenseClick) onAddExpenseClick()
+    } else {
+      setActive(key)
+    }
     if (onClose) onClose()
   }
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-ink-100 w-64">
+    <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border-r border-ink-100 dark:border-zinc-800 w-64">
       {/* Logo */}
-      <div className="h-16 flex items-center px-5 border-b border-ink-100 flex-shrink-0">
+      <div className="h-16 flex items-center px-5 border-b border-ink-100 dark:border-zinc-800 flex-shrink-0">
         <button
           onClick={() => handleNav('dashboard')}
           className="flex items-center gap-2.5 hover:opacity-80 transition-opacity text-left focus:outline-none"
@@ -74,12 +78,12 @@ const Sidebar = ({ active, setActive, onClose }) => {
             alt="Spendwise logo"
             className="w-8 h-8 rounded-xl object-cover"
           />
-          <span className="font-bold text-ink-800 text-lg tracking-tight">Spendwise</span>
+          <span className="font-bold text-ink-800 dark:text-zinc-200 text-lg tracking-tight">Spendwise</span>
         </button>
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 px-3 py-5 space-y-2.5 overflow-y-auto">
+      <nav className="flex-1 px-4 py-6 space-y-3.5 overflow-y-auto">
         {NAV.map((item) => (
           <button
             key={item.key}
@@ -87,7 +91,7 @@ const Sidebar = ({ active, setActive, onClose }) => {
             className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-150 text-left
               ${active === item.key
                 ? 'bg-sage text-white shadow-sm'
-                : 'text-ink-500 hover:bg-ink-50 hover:text-ink-800'
+                : 'text-ink-500 hover:bg-ink-50 dark:hover:bg-zinc-850 hover:text-ink-800 dark:hover:text-zinc-100'
               }`}
           >
             {item.icon}

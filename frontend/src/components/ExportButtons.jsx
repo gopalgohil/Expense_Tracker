@@ -16,19 +16,14 @@ const ExportButtons = ({ filters }) => {
     } else if (filters.dateRangeType === 'yearly') {
       if (filters.year) p.append('year', filters.year)
     } else if (filters.dateRangeType === 'custom') {
-      if (filters.startDate) p.append('startDate', filters.startDate)
-      if (filters.endDate) p.append('endDate', filters.endDate)
+      if (filters.customRange?.startDate) p.append('startDate', filters.customRange.startDate)
+      if (filters.customRange?.endDate) p.append('endDate', filters.customRange.endDate)
     } else if (filters.dateRangeType === 'all') {
       p.append('allTime', 'true')
+    } else {
+      if (filters.month) p.append('month', filters.month)
     }
     return p.toString() ? `?${p.toString()}` : ''
-  }
-
-  const getExportLabel = () => {
-    if (filters.dateRangeType === 'monthly') return filters.month || 'monthly'
-    if (filters.dateRangeType === 'yearly') return filters.year || 'yearly'
-    if (filters.dateRangeType === 'custom') return `${filters.startDate || ''}-to-${filters.endDate || ''}`
-    return 'all-time'
   }
 
   const download = async (type) => {
@@ -52,7 +47,14 @@ const ExportButtons = ({ filters }) => {
       const objectUrl = URL.createObjectURL(blob)
       const a        = document.createElement('a')
       a.href         = objectUrl
-      a.download     = `spendwise-expenses-${getExportLabel()}.${type}`
+
+      let periodLabel = 'expenses'
+      if (filters.dateRangeType === 'monthly') periodLabel = filters.month || 'monthly'
+      else if (filters.dateRangeType === 'yearly') periodLabel = filters.year || 'yearly'
+      else if (filters.dateRangeType === 'custom') periodLabel = 'custom'
+      else if (filters.dateRangeType === 'all') periodLabel = 'all-time'
+
+      a.download = `spendwise-expenses-${periodLabel}.${type}`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -73,8 +75,8 @@ const ExportButtons = ({ filters }) => {
         onClick={() => download('csv')}
         disabled={csvLoading || pdfLoading}
         className="export-btn group flex items-center gap-2 px-4 py-2 rounded-xl
-          bg-white border border-ink-200 text-ink-600 text-sm font-medium
-          hover:border-sage hover:text-sage hover:bg-sage-light
+          bg-white dark:bg-zinc-800 border border-ink-200 dark:border-zinc-700 text-ink-600 dark:text-zinc-300 text-sm font-medium
+          hover:border-sage dark:hover:border-sage hover:text-sage dark:hover:text-sage hover:bg-sage-light dark:hover:bg-sage-light/10
           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
           transition-all duration-200 shadow-card hover:shadow-lift"
         style={{ animation: csvLoading ? 'none' : undefined }}
@@ -105,8 +107,8 @@ const ExportButtons = ({ filters }) => {
         onClick={() => download('pdf')}
         disabled={csvLoading || pdfLoading}
         className="export-btn group flex items-center gap-2 px-4 py-2 rounded-xl
-          bg-white border border-ink-200 text-ink-600 text-sm font-medium
-          hover:border-coral hover:text-coral hover:bg-coral-soft
+          bg-white dark:bg-zinc-800 border border-ink-200 dark:border-zinc-700 text-ink-600 dark:text-zinc-300 text-sm font-medium
+          hover:border-coral dark:hover:border-coral hover:text-coral dark:hover:text-coral hover:bg-coral-soft dark:hover:bg-coral-soft/10
           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
           transition-all duration-200 shadow-card hover:shadow-lift"
       >

@@ -2,21 +2,20 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
-import { useCurrency } from '../hooks/useCurrency'
 
 import AnimatedChart from './animations/AnimatedChart'
+import { useTheme } from '../context/ThemeContext'
 
 const Tip = ({ active, payload }) => {
-  const { formatMoney } = useCurrency()
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white border border-ink-100 rounded-xl shadow-lift px-3 py-2 text-xs space-y-1">
+    <div className="bg-white dark:bg-zinc-800 border border-ink-100 dark:border-zinc-700 rounded-xl shadow-lift px-3 py-2 text-xs space-y-1">
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ background: p.fill }} />
-          <span className="text-ink-600">{p.name}:</span>
-          <span className="font-mono font-semibold text-ink-800">
-            {formatMoney(p.value, 0)}
+          <span className="text-ink-600 dark:text-zinc-400">{p.name}:</span>
+          <span className="font-mono font-semibold text-ink-800 dark:text-zinc-200">
+            ₹{Number(p.value).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
           </span>
         </div>
       ))}
@@ -26,12 +25,15 @@ const Tip = ({ active, payload }) => {
 
 const fmtMonth = (ym) => {
   if (!ym) return ''
-  const [y, m] = ym.split('-').map(Number)
-  return new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
+  if (ym.includes('-') && ym.split('-').length === 2 && !isNaN(ym.split('-')[0])) {
+    const [y, m] = ym.split('-').map(Number)
+    return new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
+  }
+  return ym
 }
 
 const MonthCompareChart = ({ summary, chartKey = 'compare' }) => {
-  const { currencySymbol } = useCurrency()
+  const { dark } = useTheme()
   if (!summary) return null
 
   const { currentMonth, previousMonth, currentTotal, previousTotal, changePercent } = summary
@@ -47,6 +49,10 @@ const MonthCompareChart = ({ summary, chartKey = 'compare' }) => {
   const currLabel = fmtMonth(currentMonth)
   const prevLabel = fmtMonth(previousMonth)
 
+  const gridColor = dark ? '#2d3148' : '#e8e6df'
+  const tickColor = dark ? '#9ca3af' : '#7a7670'
+  const cursorColor = dark ? '#222538' : '#f5f4f0'
+
   return (
     <AnimatedChart chartKey={chartKey}>
       <div className="card p-5">
@@ -54,32 +60,32 @@ const MonthCompareChart = ({ summary, chartKey = 'compare' }) => {
           <p className="label">Month comparison</p>
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
             changePercent > 0
-              ? 'bg-red-50 text-red-500'
+              ? 'bg-red-50 dark:bg-red-950/30 text-red-500'
               : changePercent < 0
-                ? 'bg-green-50 text-green-600'
-                : 'bg-ink-50 text-ink-500'
+                ? 'bg-green-50 dark:bg-green-950/30 text-green-600'
+                : 'bg-ink-50 dark:bg-zinc-800 text-ink-500'
           }`}>
             {changePercent > 0 ? '+' : ''}{changePercent}% vs last month
           </span>
         </div>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={data} barCategoryGap="40%">
-            <CartesianGrid strokeDasharray="3 3" stroke="#e8e6df" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
             <XAxis dataKey="name" hide />
             <YAxis
-              tick={{ fontSize: 10, fill: '#7a7670' }}
+              tick={{ fontSize: 10, fill: tickColor }}
               axisLine={false} tickLine={false}
-              tickFormatter={(v) => v >= 1000 ? `${currencySymbol}${(v / 1000).toFixed(0)}k` : `${currencySymbol}${v}`}
+              tickFormatter={(v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`}
               width={44}
             />
-            <Tooltip content={<Tip />} cursor={{ fill: '#f5f4f0' }} />
+            <Tooltip content={<Tip />} cursor={{ fill: cursorColor }} />
             <Legend
-              formatter={(v) => <span className="text-xs text-ink-600">{v}</span>}
+              formatter={(v) => <span className="text-xs text-ink-600 dark:text-zinc-400">{v}</span>}
               iconType="circle" iconSize={8}
             />
             <Bar
               dataKey={prevLabel}
-              fill="#c8dcd0"
+              fill={dark ? '#2d4d3a' : '#c8dcd0'}
               radius={[6, 6, 0, 0]}
               isAnimationActive
               animationDuration={700}

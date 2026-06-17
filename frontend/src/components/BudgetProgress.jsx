@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
 import FadeInSection from './animations/FadeInSection'
-import { useCurrency } from '../hooks/useCurrency'
 
 const bar = (percent) => {
   if (percent >= 90) return { bg: '#fee2e2', fill: '#ef4444', text: '#b91c1c' }
@@ -9,8 +8,6 @@ const bar = (percent) => {
 }
 
 const BudgetProgress = ({ status }) => {
-  const { formatMoney } = useCurrency()
-
   if (!status.length) return null
 
   return (
@@ -32,7 +29,7 @@ const BudgetProgress = ({ status }) => {
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-sm font-medium text-ink-700">{item.category}</span>
                 <span className="text-xs font-mono" style={{ color: colors.text }}>
-                  {formatMoney(item.spent, 0)} / {formatMoney(item.limit, 0)}
+                  ₹{item.spent.toLocaleString('en-IN')} / ₹{item.limit.toLocaleString('en-IN')}
                   {over && <span className="ml-1 font-semibold">(over budget!)</span>}
                 </span>
               </div>

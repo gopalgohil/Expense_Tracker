@@ -1,58 +1,36 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider }  from './context/AuthContext'
+import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
-import ProtectedRoute    from './components/ProtectedRoute'
-import PageTransition    from './components/animations/PageTransition'
-import Login             from './pages/Login'
-import Register          from './pages/Register'
-import ForgotPassword    from './pages/ForgotPassword'
-import Dashboard         from './pages/Dashboard'
+import ProtectedRoute from './components/ProtectedRoute'
+import PageTransition from './components/animations/PageTransition'
+import Layout from './components/Layout'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Dashboard from './pages/Dashboard'
+import Expenses from './pages/Expenses'
+import Budgets from './pages/Budgets'
+import Reports from './pages/Reports'
+import Settings from './pages/Settings'
 
 // AnimatePresence needs location from inside BrowserRouter
 const AnimatedRoutes = () => {
   const location = useLocation()
-  const isDashboardRoute = ['/dashboard', '/expenses', '/add-expense', '/budgets', '/charts', '/settings'].includes(location.pathname)
-  const routeKey = isDashboardRoute ? 'dashboard-group' : location.pathname
-
   return (
     <AnimatePresence mode="wait">
-      <Routes location={location} key={routeKey}>
-        <Route path="/login"     element={<PageTransition><Login /></PageTransition>} />
-        <Route path="/register"  element={<PageTransition><Register /></PageTransition>} />
-        <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
-        
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <PageTransition><Dashboard /></PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/expenses" element={
-          <ProtectedRoute>
-            <PageTransition><Dashboard /></PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/add-expense" element={
-          <ProtectedRoute>
-            <PageTransition><Dashboard /></PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/budgets" element={
-          <ProtectedRoute>
-            <PageTransition><Dashboard /></PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/charts" element={
-          <ProtectedRoute>
-            <PageTransition><Dashboard /></PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <PageTransition><Dashboard /></PageTransition>
-          </ProtectedRoute>
-        } />
+      <Routes location={location} key={location.pathname.split('/')[1] || 'root'}>
+        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
+
+        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
+          <Route path="/expenses" element={<PageTransition><Expenses /></PageTransition>} />
+          <Route path="/budgets" element={<PageTransition><Budgets /></PageTransition>} />
+          <Route path="/reports" element={<PageTransition><Reports /></PageTransition>} />
+          <Route path="/settings" element={<PageTransition><Settings /></PageTransition>} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

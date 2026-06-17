@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
 import CountUpNumber from './animations/CountUpNumber'
-import { useCurrency } from '../hooks/useCurrency'
 
 const COLORS = {
   'Food & Dining': '#d4a017', 'Transport': '#3b82f6', 'Shopping': '#a855f7',
@@ -20,8 +19,6 @@ const StatCard = ({ label, children, delay = 0 }) => (
 )
 
 const StatsBar = ({ expenses }) => {
-  const { currencySymbol } = useCurrency()
-
   if (!expenses.length) return null
 
   const total      = expenses.reduce((s, e) => s + e.amount, 0)
@@ -39,11 +36,11 @@ const StatsBar = ({ expenses }) => {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+      <div className="flex flex-wrap gap-6 items-start">
 
         <StatCard label="Total spent" delay={0}>
           <p className="text-2xl font-semibold font-mono text-ink-800">
-            {currencySymbol}<CountUpNumber value={total} decimals={2} />
+            ₹<CountUpNumber value={total} decimals={2} />
           </p>
         </StatCard>
 
@@ -57,7 +54,7 @@ const StatsBar = ({ expenses }) => {
           <StatCard label="Top category" delay={0.16}>
             <p className="text-lg font-medium text-ink-800">{top[0]}</p>
             <p className="text-xs text-ink-400 font-mono">
-              {currencySymbol}<CountUpNumber value={top[1]} decimals={2} />
+              ₹<CountUpNumber value={top[1]} decimals={2} />
               {' '}({Math.round((top[1] / total) * 100)}%)
             </p>
           </StatCard>
@@ -65,7 +62,7 @@ const StatsBar = ({ expenses }) => {
 
         <StatCard label="Avg per transaction" delay={0.24}>
           <p className="text-2xl font-semibold font-mono text-ink-800">
-            {currencySymbol}<CountUpNumber value={total / expenses.length} decimals={0} />
+            ₹<CountUpNumber value={total / expenses.length} decimals={0} />
           </p>
         </StatCard>
       </div>
@@ -78,7 +75,7 @@ const StatsBar = ({ expenses }) => {
             <motion.div
               key={cat}
               style={{ backgroundColor: COLORS[cat] || COLORS['Other'] }}
-              title={`${cat}: ${currencySymbol}${amt.toFixed(2)}`}
+              title={`${cat}: ₹${amt.toFixed(2)}`}
               className="rounded-sm"
               initial={{ width: 0 }}
               animate={{ width: `${(amt / total) * 100}%` }}

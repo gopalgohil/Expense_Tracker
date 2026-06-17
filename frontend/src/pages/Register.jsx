@@ -2,31 +2,6 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
-import { motion } from 'framer-motion'
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1
-    }
-  }
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: 'spring',
-      stiffness: 100,
-      damping: 15
-    }
-  }
-}
 
 const EyeIcon = ({ visible }) => visible ? (
   <svg width="20" height="20" fill="none" stroke="currentColor"
@@ -46,7 +21,7 @@ const EyeIcon = ({ visible }) => visible ? (
 const eyeBtnStyle = {
   position: 'absolute',
   right: 12,
-  top: '50%',
+  top: '55%',
   transform: 'translateY(-50%)',
   background: 'none',
   border: 'none',
@@ -134,219 +109,223 @@ const Register = () => {
   })()
 
   return (
-    <div className="min-h-screen flex bg-white dark:bg-[#0f1117] text-ink-800 dark:text-gray-200 font-sans transition-colors duration-300">
-      {/* Left side (gradient hero with sage theme) */}
-      <div className="hidden md:flex md:w-[45%] flex-col justify-between p-12 bg-gradient-to-b from-[#2d4a3e] to-[#1a2d25] border-r border-ink-100 dark:border-gray-800 relative overflow-hidden">
-        {/* Subtle background glow */}
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-white/5 filter blur-[120px] pointer-events-none" />
+    <div className="min-h-screen bg-ink-50 dark:bg-zinc-950 flex flex-row">
+      {/* Left panel (desktop only) */}
+      <div className="hidden lg:flex w-1/2 flex-col justify-between bg-[#1e3825] p-12 text-white relative overflow-hidden">
+        {/* Subtle background blurs */}
+        <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] rounded-full bg-emerald-600/10 blur-[120px] pointer-events-none" />
 
-        {/* Logo at top */}
-        <div className="flex items-center gap-2 relative z-10">
-          <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/20">
-            <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Brand logo/text */}
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-10 h-10 bg-emerald-800/40 border border-emerald-500/30 rounded-xl flex items-center justify-center">
+            <svg className="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <span className="text-white font-bold tracking-wide text-lg">Spendwise</span>
+          <span className="text-xl font-bold tracking-tight text-white">Spendwise</span>
         </div>
 
-        {/* Center hero */}
-        <div className="my-auto space-y-5 relative z-10">
-          <h1 className="text-4xl lg:text-[40px] font-black text-white leading-tight tracking-tight">
-            A smarter way to track <span className="bg-gradient-to-r from-emerald-300 to-sage bg-clip-text text-transparent">expenses</span> and build better <span className="bg-gradient-to-r from-sage to-white bg-clip-text text-transparent">financial habits.</span>
-          </h1>
-          <p className="text-sm text-emerald-100/80 leading-relaxed max-w-md">
+        {/* Centered Main Heading */}
+        <div className="my-auto max-w-lg space-y-4 relative z-10">
+          <h2 className="text-4xl font-extrabold tracking-tight text-white leading-tight">
+            A smarter way to track <span className="text-emerald-400">expenses</span> and build better <span className="text-emerald-350 font-medium">financial habits</span>.
+          </h2>
+          <p className="text-emerald-200/80 text-lg">
             Start tracking with clarity and ease.
           </p>
         </div>
 
-        {/* Bottom grid */}
-        <div className="grid grid-cols-2 gap-4 mt-8 relative z-10">
-          {/* Smart Analytics Card */}
-          <div className="p-5 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md hover:border-white/30 transition-all duration-300 group">
-            <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center mb-3 group-hover:bg-white/20 transition-all">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Bottom Widgets */}
+        <div className="grid grid-cols-2 gap-4 relative z-10">
+          {/* Smart Analytics */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center mb-3">
+              <svg className="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2" />
               </svg>
             </div>
-            <h3 className="text-xs font-bold text-white mb-1 tracking-wide uppercase">Smart Analytics</h3>
-            <p className="text-[11px] text-emerald-100/70 leading-normal">Deep insights on your monthly spending habits.</p>
+            <p className="text-[10px] font-bold text-white tracking-wider uppercase mb-1">Smart Analytics</p>
+            <p className="text-xs text-emerald-200/70 leading-relaxed">Deep insights on your monthly spending habits.</p>
           </div>
 
-          {/* PDF / CSV Export Card */}
-          <div className="p-5 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md hover:border-white/30 transition-all duration-300 group">
-            <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center mb-3 group-hover:bg-white/20 transition-all">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          {/* PDF/CSV Export */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center mb-3">
+              <svg className="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3" />
               </svg>
             </div>
-            <h3 className="text-xs font-bold text-white mb-1 tracking-wide uppercase">PDF / CSV Export</h3>
-            <p className="text-[11px] text-emerald-100/70 leading-normal">Generate elegant financial reports instantly.</p>
+            <p className="text-[10px] font-bold text-white tracking-wider uppercase mb-1">PDF / CSV Export</p>
+            <p className="text-xs text-emerald-200/70 leading-relaxed">Generate elegant financial reports instantly.</p>
           </div>
         </div>
       </div>
 
-      {/* Right side (Form) */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 md:px-16 lg:px-24 bg-white dark:bg-[#0f1117] transition-colors duration-300">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-md p-[1.5px] rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-xl group"
-        >
-          {/* Glowing Animated Gradient Border */}
-          <div className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden z-0">
-            <motion.div
-              className="absolute bg-[conic-gradient(from_0deg,#34d399,#80c8a8,#059669,#34d399)] opacity-70 group-hover:opacity-100 transition-opacity duration-300"
-              style={{
-                width: '300%',
-                height: '300%',
-                top: '-100%',
-                left: '-100%',
-              }}
-              animate={{
-                rotate: [0, 360]
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-            />
+      {/* Right panel (Form) */}
+      <div className="w-full lg:w-1/2 min-h-screen flex flex-col justify-center items-center p-8 bg-zinc-50 dark:bg-zinc-950">
+        
+        {/* Mobile Logo */}
+        <div className="lg:hidden text-center mb-8">
+          <div className="w-11 h-11 bg-[#1e3825] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-extrabold text-[#1e3825] dark:text-emerald-400 tracking-tight">Spendwise</h1>
+        </div>
+
+        <div className="card p-8 w-full max-w-[440px] shadow-lift border border-sage/20 dark:border-zinc-800">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-ink-800 dark:text-zinc-150">Create Account</h1>
+            <p className="text-sm text-ink-400 dark:text-zinc-400 mt-1 leading-relaxed">
+              Start tracking your expenses today.
+            </p>
           </div>
 
-          {/* Inner content wrapper */}
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="relative z-10 bg-white dark:bg-[#11131e] rounded-[22.5px] p-8 space-y-6"
-          >
-            <motion.div variants={itemVariants}>
-              <h2 className="text-3xl font-extrabold text-ink-850 dark:text-white tracking-tight">Create account</h2>
-              <p className="text-sm text-ink-400 dark:text-gray-400 mt-1.5">Start tracking your expenses elegantly</p>
-            </motion.div>
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            {/* Name */}
+            <div>
+              <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">
+                Full Name
+              </label>
+              <input 
+                name="name" 
+                type="text" 
+                placeholder="Your full name"
+                value={form.name} 
+                onChange={handleChange} 
+                autoComplete="name"
+                style={{
+                  border: errors.name ? '1.5px solid #ef4444' : undefined,
+                }}
+                className="input-field" 
+              />
+              {errors.name && <p style={{ color:'#ef4444', fontSize:12, marginTop:4, fontWeight: 500 }}>⚠ {errors.name}</p>}
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              {/* Name */}
-              <motion.div variants={itemVariants}>
-                <label className="label">Full Name</label>
+            {/* Email */}
+            <div>
+              <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">
+                Email Address
+              </label>
+              <input 
+                name="email" 
+                type="email" 
+                placeholder="you@gmail.com"
+                value={form.email} 
+                onChange={handleChange} 
+                autoComplete="email"
+                style={{
+                  border: errors.email ? '1.5px solid #ef4444' : undefined,
+                }}
+                className="input-field" 
+              />
+              {errors.email && <p style={{ color:'#ef4444', fontSize:12, marginTop:4, fontWeight: 500 }}>⚠ {errors.email}</p>}
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">
+                Password
+              </label>
+              <div className="relative">
                 <input
-                  name="name"
-                  type="text"
-                  placeholder="Your full name"
-                  value={form.name}
+                  name="password"
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="Min. 6 characters"
+                  value={form.password} 
                   onChange={handleChange}
-                  autoComplete="name"
-                  className={`input-field ${errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
+                  autoComplete="new-password"
+                  onCopy={(e) => e.preventDefault()}
+                  onPaste={(e) => e.preventDefault()}
+                  onCut={(e) => e.preventDefault()}
+                  onDragStart={(e) => e.preventDefault()}
+                  onDrop={(e) => e.preventDefault()}
+                  style={{
+                    paddingRight: 44,
+                    border: errors.password ? '1.5px solid #ef4444' : undefined,
+                  }}
+                  className="input-field"
                 />
-                {errors.name && <p className="text-xs text-red-500 mt-1">⚠ {errors.name}</p>}
-              </motion.div>
-
-              {/* Email */}
-              <motion.div variants={itemVariants}>
-                <label className="label">Email Address</label>
-                <input
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={handleChange}
-                  autoComplete="email"
-                  className={`input-field ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
-                />
-                {errors.email && <p className="text-xs text-red-500 mt-1">⚠ {errors.email}</p>}
-              </motion.div>
-
-              {/* Password */}
-              <motion.div variants={itemVariants}>
-                <label className="label">Password (min 6 characters)</label>
-                <div className="relative">
-                  <input
-                    name="password"
-                    type={showPass ? 'text' : 'password'}
-                    placeholder="Min. 6 characters"
-                    value={form.password}
-                    onChange={handleChange}
-                    autoComplete="new-password"
-                    onCopy={(e) => e.preventDefault()}
-                    onPaste={(e) => e.preventDefault()}
-                    onCut={(e) => e.preventDefault()}
-                    className={`input-field pr-12 ${errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowPass(p => !p)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 dark:hover:text-white transition-colors"
-                  >
-                    <EyeIcon visible={showPass} />
-                  </button>
-                </div>
-                {strength && (
-                  <div className="mt-2 space-y-1">
-                    <div className="h-1 bg-ink-100 dark:bg-ink-800 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-300" style={{ width: strength.w, backgroundColor: strength.color }} />
-                    </div>
-                    <span className="text-[10px] font-medium" style={{ color: strength.color }}>{strength.label} password</span>
-                  </div>
-                )}
-                {errors.password && <p className="text-xs text-red-500 mt-1">⚠ {errors.password}</p>}
-              </motion.div>
-
-              {/* Confirm password */}
-              <motion.div variants={itemVariants}>
-                <label className="label">Confirm Password</label>
-                <div className="relative">
-                  <input
-                    name="confirm"
-                    type={showConfirm ? 'text' : 'password'}
-                    placeholder="Re-enter your password"
-                    value={form.confirm}
-                    onChange={handleChange}
-                    autoComplete="new-password"
-                    onCopy={(e) => e.preventDefault()}
-                    onPaste={(e) => e.preventDefault()}
-                    onCut={(e) => e.preventDefault()}
-                    className={`input-field pr-12 ${errors.confirm ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowConfirm(p => !p)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 dark:hover:text-white transition-colors"
-                  >
-                    <EyeIcon visible={showConfirm} />
-                  </button>
-                </div>
-                {form.confirm && (
-                  <p className={`text-xs mt-1 font-medium ${form.confirm === form.password ? 'text-emerald-500' : 'text-red-500'}`}>
-                    {form.confirm === form.password ? '✓ Passwords match' : '✗ Passwords do not match'}
-                  </p>
-                )}
-                {errors.confirm && <p className="text-xs text-red-500 mt-1">⚠ {errors.confirm}</p>}
-              </motion.div>
-
-              <motion.div variants={itemVariants}>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-primary w-full h-12 flex items-center justify-center gap-2 mt-4"
+                <button 
+                  type="button" 
+                  tabIndex={-1}
+                  onClick={() => setShowPass((p) => !p)}
+                  style={eyeBtnStyle}
                 >
-                  {submitting ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : 'Create Account'}
+                  <EyeIcon visible={showPass} />
                 </button>
-              </motion.div>
-            </form>
+              </div>
+              {/* Strength bar */}
+              {strength && (
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ height: 4, background: '#e5e7eb', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: strength.w, background: strength.color, borderRadius: 4, transition: 'width 0.3s' }} />
+                  </div>
+                  <p style={{ fontSize: 11, color: strength.color, marginTop: 2, fontWeight: 500 }}>{strength.label} password</p>
+                </div>
+              )}
+              {errors.password && <p style={{ color:'#ef4444', fontSize:12, marginTop:4, fontWeight: 500 }}>⚠ {errors.password}</p>}
+            </div>
 
-            <motion.p variants={itemVariants} className="text-center text-sm text-ink-400 dark:text-gray-400 pt-2">
-              Already have an account?{' '}
-              <Link to="/login" className="text-sage hover:text-sage-dark font-semibold transition-colors">Sign In</Link>
-            </motion.p>
-          </motion.div>
-        </motion.div>
+            {/* Confirm Password */}
+            <div>
+              <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  name="confirm"
+                  type={showConfirm ? 'text' : 'password'}
+                  placeholder="Re-enter your password"
+                  value={form.confirm} 
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                  onCopy={(e) => e.preventDefault()}
+                  onPaste={(e) => e.preventDefault()}
+                  onCut={(e) => e.preventDefault()}
+                  onDragStart={(e) => e.preventDefault()}
+                  onDrop={(e) => e.preventDefault()}
+                  style={{
+                    paddingRight: 44,
+                    border: errors.confirm ? '1.5px solid #ef4444' : undefined,
+                  }}
+                  className="input-field"
+                />
+                <button 
+                  type="button" 
+                  tabIndex={-1}
+                  onClick={() => setShowConfirm((p) => !p)}
+                  style={eyeBtnStyle}
+                >
+                  <EyeIcon visible={showConfirm} />
+                </button>
+              </div>
+              {/* Live match */}
+              {form.confirm && (
+                <p style={{ fontSize: 12, marginTop: 4, fontWeight: 500, color: form.confirm === form.password ? '#16a34a' : '#ef4444' }}>
+                  {form.confirm === form.password ? '✅ Passwords match' : '❌ Passwords do not match'}
+                </p>
+              )}
+              {errors.confirm && <p style={{ color:'#ef4444', fontSize:12, marginTop:4, fontWeight: 500 }}>⚠ {errors.confirm}</p>}
+            </div>
+
+            <button type="submit" disabled={submitting} className="btn-primary w-full mt-2">
+              {submitting ? 'Creating account…' : 'Create Account'}
+            </button>
+          </form>
+        </div>
+
+        <p className="text-center text-sm text-ink-500 dark:text-zinc-400 mt-5">
+          Already have an account?{' '}
+          <Link to="/login" className="text-sage font-semibold hover:text-sage-dark hover:underline transition-all duration-200">
+            Sign In
+          </Link>
+        </p>
+
       </div>
     </div>
   )

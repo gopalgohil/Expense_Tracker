@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe } from '../api/client'
 import api from '../api/client'
+import hashPassword from '../utils/hashPassword'
 
 const AuthContext = createContext(null)
 
@@ -34,13 +35,6 @@ export const AuthProvider = ({ children }) => {
     const u = normalizeUser(data)
     setUser(u)
     return u
-  }
-
-  const hashPassword = async (pwd) => {
-    const utf8 = new TextEncoder().encode(pwd)
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', utf8)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
   }
 
   const login = async (email, password) => {

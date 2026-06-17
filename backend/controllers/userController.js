@@ -55,7 +55,7 @@ export const changePassword = async (req, res) => {
     if (newPassword.length < 6)
       return res.status(400).json({ message: 'New password must be at least 6 characters.' });
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('+password');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const match = await user.matchPassword(currentPassword);
@@ -76,7 +76,7 @@ export const deleteAccount = async (req, res) => {
     if (!password)
       return res.status(400).json({ message: 'Please enter your password to confirm.' });
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('+password');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const match = await user.matchPassword(password);

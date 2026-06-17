@@ -5,12 +5,7 @@ import { updateUserProfile, changePassword, deleteAccount } from '../api/client'
 import { useNavigate } from 'react-router-dom'
 import ScaleModal from '../components/animations/ScaleModal'
 import { HoverButton } from '../components/animations/HoverButton'
-
-const CURRENCIES = [
-  { value: 'INR', label: '₹  Indian Rupee (INR)' },
-  { value: 'USD', label: '$  US Dollar (USD)'    },
-  { value: 'EUR', label: '€  Euro (EUR)'          },
-]
+import hashPassword from '../utils/hashPassword'
 
 // ── Reusable components defined OUTSIDE Settings ──────────────
 // (if defined inside, React recreates them on every render → input loses focus)
@@ -62,6 +57,11 @@ const PwdField = ({ label, name, show, toggle, value, onChange, error }) => (
         onChange={onChange}
         placeholder="••••••••"
         autoComplete="off"
+        onCopy={(e) => e.preventDefault()}
+        onCut={(e) => e.preventDefault()}
+        onPaste={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
+        onDrop={(e) => e.preventDefault()}
         className={`input-field ${error ? 'border-red-400' : ''}`}
         style={{ paddingRight: 40 }}
       />
@@ -91,7 +91,7 @@ const Settings = () => {
   const navigate = useNavigate()
 
   // Profile state
-  const [profile,       setProfile]       = useState({ name: user?.name || '', email: user?.email || '', currency: user?.currency || 'INR' })
+  const [profile,       setProfile]       = useState({ name: user?.name || '', email: user?.email || '' })
   const [profileErr,    setProfileErr]    = useState({})
   const [profileSaving, setProfileSaving] = useState(false)
 
@@ -150,7 +150,9 @@ const Settings = () => {
 
     setPwdSaving(true)
     try {
-      await changePassword({ currentPassword: pwd.current, newPassword: pwd.newPass })
+      const hashedCurrent = await hashPassword(pwd.current)
+      const hashedNew     = await hashPassword(pwd.newPass)
+      await changePassword({ currentPassword: hashedCurrent, newPassword: hashedNew })
       toast.success('Password changed successfully!')
       setPwd({ current: '', newPass: '', confirm: '' })
     } catch (err) {
@@ -165,7 +167,8 @@ const Settings = () => {
     if (!deletePass) { setDeleteErr('Please enter your password.'); return }
     setDeleting(true)
     try {
-      await deleteAccount({ password: deletePass })
+      const hashedPass = await hashPassword(deletePass)
+      await deleteAccount({ password: hashedPass })
       // Only redirect on SUCCESS
       toast.success('Account deleted successfully.')
       logout()
@@ -200,16 +203,6 @@ const Settings = () => {
             onChange={handleProfileChange} placeholder="you@example.com"
             error={profileErr.email}
           />
-          <div>
-            <label className="label">Currency Preference</label>
-            <select name="currency" value={profile.currency}
-              onChange={handleProfileChange} className="input-field bg-white">
-              {CURRENCIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-            <p className="text-xs text-ink-400 mt-1">Used for formatting amounts across the app</p>
-          </div>
           <button type="submit" disabled={profileSaving} className="btn-primary">
             {profileSaving ? 'Saving…' : 'Save Changes'}
           </button>
@@ -288,6 +281,11 @@ const Settings = () => {
               placeholder="Enter your password"
               value={deletePass}
               onChange={(e) => { setDeletePass(e.target.value); setDeleteErr('') }}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              onPaste={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
+              onDrop={(e) => e.preventDefault()}
               className="input-field"
             />
             {deleteErr && <p className="text-red-600 text-xs mt-1">⚠ {deleteErr}</p>}

@@ -49,7 +49,44 @@ export const getPeriodRanges = (query) => {
     };
   }
 
+  if (quarter) {
+    const parts = quarter.split('-');
+    if (parts.length === 2) {
+      const qYear = parseInt(parts[0]);
+      const qVal = parts[1]; // Q1, Q2, Q3, Q4
+      if (!isNaN(qYear) && ['Q1', 'Q2', 'Q3', 'Q4'].includes(qVal)) {
+        let qStartMonth = 0;
+        if (qVal === 'Q1') qStartMonth = 0;
+        if (qVal === 'Q2') qStartMonth = 3;
+        if (qVal === 'Q3') qStartMonth = 6;
+        if (qVal === 'Q4') qStartMonth = 9;
 
+        start = new Date(Date.UTC(qYear, qStartMonth, 1));
+        end = new Date(Date.UTC(qYear, qStartMonth + 3, 1));
+
+        // Previous quarter
+        let prevQYear = qYear;
+        let prevQStartMonth = qStartMonth - 3;
+        if (prevQStartMonth < 0) {
+          prevQStartMonth = 9;
+          prevQYear -= 1;
+        }
+        prevStart = new Date(Date.UTC(prevQYear, prevQStartMonth, 1));
+        prevEnd = new Date(Date.UTC(prevQYear, prevQStartMonth + 3, 1));
+
+        periodLabel = `${qVal} ${qYear}`;
+        prevPeriodLabel = `${qVal === 'Q1' ? 'Q4' : 'Q' + (parseInt(qVal[1]) - 1)} ${qVal === 'Q1' ? qYear - 1 : qYear}`;
+
+        return {
+          current: { start, end },
+          previous: { start: prevStart, end: prevEnd },
+          periodLabel,
+          prevPeriodLabel,
+          type: 'quarterly'
+        };
+      }
+    }
+  }
 
   if (year) {
     const y = parseInt(year);

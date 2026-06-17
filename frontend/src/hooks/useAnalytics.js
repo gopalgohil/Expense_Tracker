@@ -12,14 +12,14 @@ export const useAnalytics = () => {
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState(null)
 
-  const fetchAnalytics = useCallback(async (params = {}) => {
+  const fetchAnalytics = useCallback(async (month) => {
     setLoading(true)
     setError(null)
     try {
       const [cmp, top, daily] = await Promise.all([
-        getMonthlyCompare(params),
-        getTopCategories(params),
-        getDailyBreakdown(params),
+        getMonthlyCompare({ month }),
+        getTopCategories({ month }),
+        getDailyBreakdown({ month }),
       ])
       setSummary(cmp.data)
       setTopCats(top.data)

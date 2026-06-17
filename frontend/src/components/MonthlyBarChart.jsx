@@ -2,18 +2,18 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
-import { useCurrency } from '../hooks/useCurrency'
 
 import AnimatedChart from './animations/AnimatedChart'
 
+import { useTheme } from '../context/ThemeContext'
+
 const CustomTooltip = ({ active, payload, label }) => {
-  const { formatMoney } = useCurrency()
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white border border-ink-100 rounded-xl shadow-lift px-3 py-2 text-xs">
-      <p className="font-medium text-ink-700">{label}</p>
-      <p className="text-ink-500 font-mono mt-0.5">
-        {formatMoney(payload[0].value)}
+    <div className="bg-white dark:bg-zinc-800 border border-ink-100 dark:border-zinc-700 rounded-xl shadow-lift px-3 py-2 text-xs">
+      <p className="font-medium text-ink-700 dark:text-zinc-200">{label}</p>
+      <p className="text-ink-500 dark:text-zinc-400 font-mono mt-0.5">
+        ₹{Number(payload[0].value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
       </p>
     </div>
   )
@@ -41,10 +41,14 @@ const buildMonthlyData = (expenses) => {
 }
 
 const MonthlyBarChart = ({ expenses, chartKey = 'monthly' }) => {
-  const { currencySymbol } = useCurrency()
+  const { dark } = useTheme()
   const data = buildMonthlyData(expenses)
 
   if (!data.length) return null
+
+  const gridColor = dark ? '#2d3148' : '#e8e6df'
+  const tickColor = dark ? '#9ca3af' : '#7a7670'
+  const cursorColor = dark ? '#222538' : '#f5f4f0'
 
   return (
     <AnimatedChart chartKey={chartKey}>
@@ -52,21 +56,21 @@ const MonthlyBarChart = ({ expenses, chartKey = 'monthly' }) => {
         <p className="label mb-4">Monthly spending trend</p>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={data} barCategoryGap="35%">
-            <CartesianGrid strokeDasharray="3 3" stroke="#e8e6df" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
             <XAxis
               dataKey="month"
-              tick={{ fontSize: 11, fill: '#7a7670' }}
+              tick={{ fontSize: 11, fill: tickColor }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: '#7a7670' }}
+              tick={{ fontSize: 11, fill: tickColor }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => `${currencySymbol}${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+              tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
               width={48}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f5f4f0' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: cursorColor }} />
             <Bar
               dataKey="total"
               radius={[6, 6, 0, 0]}
@@ -77,7 +81,7 @@ const MonthlyBarChart = ({ expenses, chartKey = 'monthly' }) => {
               {data.map((entry, index) => (
                 <Cell
                   key={index}
-                  fill={index === data.length - 1 ? '#4a7c59' : '#c8dcd0'}
+                  fill={index === data.length - 1 ? '#4a7c59' : (dark ? '#2d4d3a' : '#c8dcd0')}
                 />
               ))}
             </Bar>

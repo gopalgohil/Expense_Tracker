@@ -12,6 +12,8 @@ const DateRangeSelector = ({
   onDateRangeTypeChange,
   month,
   onMonthChange,
+  quarter,
+  onQuarterChange,
   year,
   onYearChange,
   customRange,
