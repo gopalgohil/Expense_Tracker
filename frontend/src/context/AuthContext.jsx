@@ -27,7 +27,13 @@ export const AuthProvider = ({ children }) => {
 
     getMe()
       .then(({ data }) => setUser(normalizeUser(data)))
-      .catch(() => setUser(null))
+      .catch((err) => {
+        // 401 on /auth/me just means no active session — not a real error
+        if (err?.response?.status !== 401) {
+          console.error('Session restore failed:', err?.message)
+        }
+        setUser(null)
+      })
       .finally(() => setInitializing(false))
   }, [])
 
