@@ -312,22 +312,31 @@ export const forgotPassword = async (req, res) => {
       </div>
     `;
 
+    console.log(`[forgotPassword] Attempting to send OTP email to: ${user.email}`);
+    console.log(`[forgotPassword] BREVO_API_KEY set: ${!!process.env.BREVO_API_KEY}`);
+    console.log(`[forgotPassword] RESEND_API_KEY set: ${!!process.env.RESEND_API_KEY}`);
+    console.log(`[forgotPassword] SMTP_FROM: ${process.env.SMTP_FROM}`);
+
     let emailSent = true;
+    let emailError = null;
     try {
       await sendEmail({
         to: user.email,
         subject: 'Spendwise Password Reset OTP',
         html,
       });
+      console.log(`[forgotPassword] Email sent successfully to: ${user.email}`);
     } catch (emailErr) {
-      console.error('[forgotPassword] Email send failed:', emailErr);
+      console.error('[forgotPassword] Email send failed:', emailErr.message);
       emailSent = false;
+      emailError = emailErr.message;
     }
 
     return res.status(200).json({
       message: emailSent
         ? 'OTP sent successfully to your email'
-        : 'OTP generated successfully (Note: Email delivery failed. Please retrieve the OTP from your database).',
+        : `Email delivery failed: ${emailError || 'Unknown error'}. OTP saved in database.`,
+      emailSent,
     });
   } catch (error) {
     console.error(error);
