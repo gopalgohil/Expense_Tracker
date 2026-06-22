@@ -16,7 +16,7 @@ const currentMonth = () => {
 
 const BudgetSettings = () => {
   const navigate                                        = useNavigate()
-  const { budgets, loading, fetchBudgets, saveBudget, removeBudget } = useBudgets()
+  const { budgets, status, loading, fetchBudgets, saveBudget, removeBudget } = useBudgets()
   const [month,   setMonth]   = useState(currentMonth())
   const [form,    setForm]    = useState({ category: '', limit: '' })
   const [saving,  setSaving]  = useState(false)
@@ -27,6 +27,15 @@ const BudgetSettings = () => {
     e.preventDefault()
     if (!form.category || !form.limit) { toast.error('Select a category and enter a limit'); return }
     if (Number(form.limit) <= 0)        { toast.error('Limit must be greater than 0'); return }
+    
+    // Client-side validation: prevent setting budget lower than already spent
+    const existingStatus = status?.find((s) => s.category === form.category)
+    const spentAmount = existingStatus ? existingStatus.spent : 0
+    if (Number(form.limit) < spentAmount) {
+      toast.error('Budget cannot be less than the amount already spent.')
+      return
+    }
+
     setSaving(true)
     const result = await saveBudget(month, form.category, Number(form.limit))
     setSaving(false)

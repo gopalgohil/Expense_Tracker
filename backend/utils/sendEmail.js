@@ -14,6 +14,9 @@ export const sendEmail = async ({ to, subject, html }) => {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
   } else {
     // Generate a temporary Ethereal SMTP account for local testing

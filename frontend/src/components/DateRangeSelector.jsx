@@ -5,6 +5,8 @@ const currentMonth = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+const today = () => new Date().toISOString().split('T')[0]
+
 const YEARS = Array.from({ length: 6 }, (_, i) => String(new Date().getFullYear() - i))
 
 const DateRangeSelector = ({
@@ -92,6 +94,7 @@ const DateRangeSelector = ({
                 value={customRange.startDate}
                 onChange={(e) => onCustomRangeChange({ ...customRange, startDate: e.target.value })}
                 className="input-field py-1.5 px-3 text-xs"
+                max={today()}
               />
             </div>
             <div className="flex items-center gap-1.5 w-full sm:w-auto">
@@ -101,6 +104,7 @@ const DateRangeSelector = ({
                 value={customRange.endDate}
                 onChange={(e) => onCustomRangeChange({ ...customRange, endDate: e.target.value })}
                 className="input-field py-1.5 px-3 text-xs"
+                max={today()}
               />
             </div>
           </div>

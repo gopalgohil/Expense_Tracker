@@ -50,7 +50,7 @@ export const sendRegisterOTP    = (data) => api.post('/auth/send-register-otp', 
 export const verifyRegisterOTP  = (data) => api.post('/auth/verify-register-otp', data)
 
 // ── Expenses ─────────────────────────────────────
-export const getExpenses    = (params)   => api.get('/expenses',    { params })
+export const getExpenses    = (params, signal) => api.get('/expenses',    { params, signal })
 export const createExpense  = (data)     => api.post('/expenses',   data)
 export const updateExpense  = (id, data) => api.put(`/expenses/${id}`, data)
 export const deleteExpense  = (id)       => api.delete(`/expenses/${id}`)

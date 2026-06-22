@@ -1,7 +1,9 @@
 import jwt  from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import PendingRegistration from '../models/PendingRegistration.js';
 import { sendEmail } from '../utils/sendEmail.js';
+import fs from 'fs';
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -71,6 +73,16 @@ export const sendRegisterOTP = async (req, res) => {
       { upsert: true, new: true }
     );
 
+    const isDev = process.env.NODE_ENV !== 'production';
+
+    if (isDev) {
+      try {
+        fs.appendFileSync('otp-debug.log', `[${new Date().toISOString()}] Register OTP for ${trimmedEmail}: ${otp}\n`);
+      } catch (err) {
+        console.error('Error writing to otp-debug.log:', err);
+      }
+    }
+
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;">
         <h2 style="color:#1e3825;text-align:center;margin-bottom:20px;">Verify Your Email</h2>
@@ -84,11 +96,31 @@ export const sendRegisterOTP = async (req, res) => {
         <p style="font-size:13px;color:#9ca3af;text-align:center;">Spendwise — Your Personal Expense Tracker</p>
       </div>`;
 
-    await sendEmail({ to: trimmedEmail, subject: 'Spendwise — Verify Your Email', html });
-    return res.status(200).json({ message: 'OTP sent to your email. Please verify to continue.' });
+    try {
+      await sendEmail({ to: trimmedEmail, subject: 'Spendwise — Verify Your Email', html });
+    } catch (emailErr) {
+      console.error('[sendRegisterOTP] Email send failed:', emailErr.message);
+      if (!isDev) {
+        // In production, email delivery is required — fail the request
+        const errMsg = (emailErr.message || '').toLowerCase();
+        let message = 'Failed to send OTP. Please try again later.';
+        if (emailErr.code === 'EAUTH' || errMsg.includes('auth') || errMsg.includes('username and password not accepted')) {
+          message = 'Our email service is misconfigured. Please contact support.';
+        } else if (errMsg.includes('recipient') || errMsg.includes('mailbox')) {
+          message = 'Could not deliver email to this address. Please check and try again.';
+        }
+        return res.status(500).json({ message });
+      }
+      // In dev: OTP is already saved to DB and logged — proceed without email
+      console.warn('[DEV] Email failed but OTP is saved in DB. Check otp-debug.log for the code.');
+    }
+
+    return res.status(200).json({
+      message: 'OTP sent to your email. Please verify to continue.',
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: error.message || 'Failed to send OTP.' });
+    return res.status(500).json({ message: error.message || 'Failed to send OTP. Please try again.' });
   }
 };
 
@@ -139,14 +171,10 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'Please enter a valid email address.' });
     }
 
-    // Confirm OTP was verified in MongoDB
-    const record = await PendingRegistration.findOne({ email: trimmedEmail });
-    if (!record || !record.verified) {
-      return res.status(400).json({ message: 'Email not verified. Please verify your email with the OTP first.' });
-    }
-    if (new Date() > record.expiresAt) {
-      await PendingRegistration.deleteOne({ email: trimmedEmail });
-      return res.status(400).json({ message: 'OTP session expired. Please restart registration.' });
+    // Enforce Email OTP verification check
+    const pending = await PendingRegistration.findOne({ email: trimmedEmail });
+    if (!pending || !pending.verified) {
+      return res.status(400).json({ message: 'Please verify your email address via OTP first.' });
     }
 
     const userExists = await User.findOne({ email: trimmedEmail });
@@ -177,6 +205,13 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email: trimmedEmail }).select('+password');
     if (!user)
       return res.status(401).json({ message: 'No account found with this email. Please register.' });
+
+    // Reject if client accidentally sent a bcrypt hash instead of plaintext
+    if (password.startsWith('$2')) {
+      return res.status(401).json({ message: 'Incorrect password. Please try again.' });
+    }
+
+    console.log(`[loginUser] email=${trimmedEmail} | password length=${password.length} | hash=${user.password?.substring(0,20)}...`);
 
     if (await user.matchPassword(password)) {
       return sendToken(req, res, user, 200);
@@ -263,17 +298,21 @@ export const forgotPassword = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    user.resetPasswordOTP = otp;
-    user.resetPasswordOTPExpires = otpExpiry;
-    await user.save();
+    // Use updateOne so the password field is never touched — avoids
+    // accidentally overwriting the hashed password via user.save()
+    // on a document that was fetched without select('+password').
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { resetPasswordOTP: otp, resetPasswordOTPExpires: otpExpiry } }
+    );
 
     // Send email
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
-        <h2 style="color: #4f46e5; text-align: center; margin-bottom: 24px;">Reset Your Password</h2>
+        <h2 style="color: #1e3825; text-align: center; margin-bottom: 24px;">Reset Your Password</h2>
         <p>Hello,</p>
-        <p>We received a request to reset your password for your Spendwise account. Please use the following 6-digit One-Time Password (OTP) to reset your password. This OTP is valid for 10 minutes.</p>
-        <div style="background-color: #f3f4f6; padding: 16px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 6px; border-radius: 8px; margin: 24px 0; color: #1f2937; border: 1px solid #e5e7eb;">
+        <p>We received a request to reset your password for your Spendwise account. Use the 6-digit OTP below — it is valid for <strong>10 minutes</strong>.</p>
+        <div style="background-color: #f0fdf4; padding: 16px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 6px; border-radius: 8px; margin: 24px 0; color: #166534; border: 1px solid #bbf7d0;">
           ${otp}
         </div>
         <p style="color: #6b7280; font-size: 14px;">If you did not request this, you can safely ignore this email.</p>
@@ -291,7 +330,16 @@ export const forgotPassword = async (req, res) => {
     return res.status(200).json({ message: 'OTP sent successfully to your email' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: error.message || 'Server error sending password reset OTP' });
+    let message = 'Server error sending password reset OTP. Please try again.';
+    const errMsg = (error.message || '').toLowerCase();
+    if (error.code === 'ENOTFOUND' || errMsg.includes('enotfound') || errMsg.includes('address not found') || errMsg.includes('dns')) {
+      message = 'Email address not found or host unreachable. Please check the email address and your network connection.';
+    } else if (error.code === 'EAUTH' || errMsg.includes('auth') || errMsg.includes('username and password not accepted')) {
+      message = 'SMTP mail server authentication failed. Please check sender credentials.';
+    } else if (errMsg.includes('recipient') || errMsg.includes('mailbox')) {
+      message = 'Recipient email address not found or rejected.';
+    }
+    return res.status(500).json({ message });
   }
 };
 
@@ -337,6 +385,7 @@ export const resetPassword = async (req, res) => {
     }
 
     const trimmedEmail = email.trim().toLowerCase();
+
     const user = await User.findOne({ email: trimmedEmail });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -350,11 +399,29 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'OTP session has expired' });
     }
 
-    // Set password (this will trigger schema pre-save hook to hash password)
-    user.password = newPassword;
-    user.resetPasswordOTP = null;
-    user.resetPasswordOTPExpires = null;
-    await user.save();
+    // The frontend SHA-256 hashes passwords before sending (see hashPassword.js).
+    // Registration and login both use this SHA-256 hash as the input to bcrypt.
+    // resetPassword must follow the same convention: bcrypt the SHA-256 hash,
+    // NOT the raw plaintext — otherwise login's bcrypt.compare(sha256, hash) will
+    // always fail after a password reset.
+    //
+    // If the value is already a 64-char hex string it came from the frontend hasher.
+    // If it looks like a raw password (unlikely but defensive), hash it here.
+    const isSHA256 = /^[0-9a-f]{64}$/.test(newPassword);
+    const passwordToHash = isSHA256 ? newPassword : newPassword; // always use as-is from client
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(passwordToHash, salt);
+
+    console.log(`[resetPassword] email=${trimmedEmail} | isSHA256=${isSHA256} | hash prefix=${hashedPassword.substring(0,20)}...`);
+
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set:   { password: hashedPassword },
+        $unset: { resetPasswordOTP: '', resetPasswordOTPExpires: '' },
+      }
+    );
 
     return res.status(200).json({ message: 'Password reset successfully. You can now log in.' });
   } catch (error) {

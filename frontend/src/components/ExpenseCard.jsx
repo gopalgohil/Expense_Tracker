@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import ExpenseForm from './ExpenseForm'
-import { HoverIcon } from './animations/HoverButton'
+import { HoverIcon, HoverButton } from './animations/HoverButton'
 import ScaleModal from './animations/ScaleModal'
 
 const COLORS = {
@@ -28,9 +28,10 @@ const fmt = (dateStr) =>
   new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
 const ExpenseCard = ({ expense, onEdit, onUpdate, onDelete, isNew = false }) => {
-  const [deleting,  setDeleting]  = useState(false)
-  const [stopping,  setStopping]  = useState(false)
-  const [highlight, setHighlight] = useState(isNew)
+  const [deleting,         setDeleting]         = useState(false)
+  const [stopping,         setStopping]         = useState(false)
+  const [showStopConfirm,  setShowStopConfirm]  = useState(false)
+  const [highlight,        setHighlight]        = useState(isNew)
 
   useEffect(() => {
     if (!isNew) return undefined
@@ -45,7 +46,9 @@ const ExpenseCard = ({ expense, onEdit, onUpdate, onDelete, isNew = false }) => 
     setDeleting(false)
   }
 
-  const handleStopRecurring = async () => {
+  const handleStopRecurring = () => setShowStopConfirm(true)
+
+  const confirmStopRecurring = async () => {
     setStopping(true)
     const result = await onUpdate(expense._id, {
       amount:      expense.amount,
@@ -55,10 +58,12 @@ const ExpenseCard = ({ expense, onEdit, onUpdate, onDelete, isNew = false }) => 
       isRecurring: false,
     })
     setStopping(false)
+    setShowStopConfirm(false)
     if (result.success) toast.success('Recurrence stopped')
   }
 
   return (
+    <>
     <motion.div
       layout
       className={`card p-4 transition-all duration-300
@@ -135,6 +140,58 @@ const ExpenseCard = ({ expense, onEdit, onUpdate, onDelete, isNew = false }) => 
         </div>
       </div>
     </motion.div>
+
+      {/* Stop Recurring Confirmation Modal */}
+      <ScaleModal
+        open={showStopConfirm}
+        onClose={() => setShowStopConfirm(false)}
+        maxWidth="max-w-sm"
+      >
+        <div className="p-6 text-center">
+          <div className="w-12 h-12 rounded-full bg-amber-soft flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-amber-strong" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <rect x="6" y="6" width="12" height="12" rx="1"
+                strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-ink-800 dark:text-zinc-200 mb-2">
+            Stop Recurring?
+          </h3>
+          <p className="text-sm text-ink-400 dark:text-zinc-500 leading-relaxed mb-1">
+            This will stop the automatic recurrence for
+          </p>
+          <p className="text-sm font-semibold text-ink-700 dark:text-zinc-300 mb-1">
+            {expense.category}
+          </p>
+          <p className="text-sm text-ink-400 dark:text-zinc-500 leading-relaxed mb-6">
+            <span className="font-mono font-semibold text-ink-700 dark:text-zinc-300">
+              ₹{Number(expense.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </span>
+            {' '}· {INTERVAL_LABEL[expense.recurrenceInterval] || 'Recurring'}
+            <br />The existing expense will remain. No future entries will be created.
+          </p>
+          <div className="flex flex-col gap-2">
+            <HoverButton
+              onClick={confirmStopRecurring}
+              disabled={stopping}
+              className="w-full py-2.5 rounded-xl bg-amber-strong text-white font-semibold text-sm
+                hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {stopping ? 'Stopping…' : 'Yes, Stop Recurring'}
+            </HoverButton>
+            <HoverButton
+              onClick={() => setShowStopConfirm(false)}
+              disabled={stopping}
+              className="w-full py-2.5 rounded-xl bg-ink-50 dark:bg-zinc-800 text-ink-600
+                dark:text-zinc-400 font-medium text-sm hover:bg-ink-100 dark:hover:bg-zinc-750
+                transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </HoverButton>
+          </div>
+        </div>
+      </ScaleModal>
+    </>
   )
 }
 

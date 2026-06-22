@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { forgotPassword, verifyOTP, resetPassword } from '../api/client'
+import hashPassword from '../utils/hashPassword'
 
 const Login = () => {
   const { login, user, initializing } = useAuth()
@@ -166,10 +167,11 @@ const Login = () => {
 
     setForgotSubmitting(true)
     try {
+      const hashedNew = await hashPassword(forgotNewPass)
       const response = await resetPassword({
         email: forgotEmail.trim(),
         otp: forgotOTP.trim(),
-        newPassword: forgotNewPass
+        newPassword: hashedNew
       })
       toast.success(response.data?.message || 'Password reset successfully!')
       // Reset state and go back to login

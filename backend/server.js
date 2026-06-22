@@ -17,47 +17,61 @@ startRecurringJob();
 
 const app = express();
 
-// Middleware
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:5173',
-];
+// ── CORS — allow local dev + Vercel production frontend ──
+const normalizeOrigin = (url = '') => url.trim().replace(/\/$/, '');
 
-const clientUrl = process.env.CLIENT_URL;
-if (clientUrl) {
-  const cleanedUrl = clientUrl.trim();
-  if (cleanedUrl.startsWith('http://') || cleanedUrl.startsWith('https://')) {
-    allowedOrigins.push(cleanedUrl);
-    allowedOrigins.push(cleanedUrl.replace(/\/$/, ''));
-  } else {
-    allowedOrigins.push(`https://${cleanedUrl}`);
-    allowedOrigins.push(`http://${cleanedUrl}`);
-    allowedOrigins.push(`https://${cleanedUrl}`.replace(/\/$/, ''));
-    allowedOrigins.push(`http://${cleanedUrl}`.replace(/\/$/, ''));
+const buildAllowedOrigins = () => {
+  const origins = new Set([
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+  ]);
+
+  const addOrigin = (value) => {
+    if (!value) return;
+    const cleaned = normalizeOrigin(value);
+    if (!cleaned) return;
+    if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+      origins.add(cleaned);
+      return;
+    }
+    origins.add(`https://${cleaned}`);
+    origins.add(`http://${cleaned}`);
+  };
+
+  addOrigin(process.env.CLIENT_URL);
+  addOrigin(process.env.FRONTEND_URL);
+
+  if (process.env.ALLOWED_ORIGINS) {
+    process.env.ALLOWED_ORIGINS.split(',').forEach(addOrigin);
   }
-}
+
+  return origins;
+};
+
+const allowedOrigins = buildAllowedOrigins();
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  const normalized = normalizeOrigin(origin);
+  if (allowedOrigins.has(normalized)) return true;
+  if (normalized.endsWith('.vercel.app')) return true;
+  if (normalized.includes('localhost') || normalized.includes('127.0.0.1')) return true;
+  return false;
+};
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    
-    const isAllowed = 
-      allowedOrigins.includes(origin) ||
-      allowedOrigins.includes(origin.replace(/\/$/, '')) ||
-      origin.endsWith('.vercel.app') ||
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1');
-
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    if (!origin || isOriginAllowed(origin)) {
+      // Return the exact origin string — required when credentials: true
+      return callback(null, origin || true);
     }
+    console.warn(`CORS blocked origin: ${origin}`);
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
-  credentials: true,    // required for cookies
+  credentials: true,
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -92,8 +106,8 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  console.log(`Local:   http://localhost:${PORT}`);
-  console.log(`Network: http://192.168.0.91:${PORT}`);
+  console.log(`CORS allowed origins: ${[...allowedOrigins].join(', ')} + *.vercel.app`);
+  console.log(`CLIENT_URL: ${process.env.CLIENT_URL || '(not set)'}`);
 });
 
 // Trigger reload to restart the server under the original nodemon process

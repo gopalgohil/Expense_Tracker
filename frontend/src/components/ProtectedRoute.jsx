@@ -1,12 +1,13 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-const ProtectedRoute = ({ children }) => {
+/* Guards authenticated routes — renders child routes via Outlet when logged in */
+const ProtectedRoute = () => {
   const { user, initializing } = useAuth()
 
   if (initializing) return null
 
-  return user ? children : <Navigate to="/login" replace />
+  return user ? <Outlet /> : <Navigate to="/login" replace />
 }
 
 export default ProtectedRoute

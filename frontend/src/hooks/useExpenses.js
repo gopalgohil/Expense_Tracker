@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import {
   getExpenses as apiGet,
   createExpense as apiCreate,
@@ -9,36 +9,40 @@ import {
 export const useExpenses = () => {
   const [expenses,    setExpenses]    = useState([])
   const [allExpenses, setAllExpenses] = useState([])
-  const [pagination,  setPagination]  = useState({ total: 0, page: 1, limit: 20, totalPages: 1 })
+  const [pagination,  setPagination]  = useState({ total: 0, page: 1, limit: 5, totalPages: 1 })
   const [loading,     setLoading]     = useState(false)
   const [error,       setError]       = useState(null)
 
+  // Holds the AbortController for the current in-flight filtered fetch
+  const abortRef = useRef(null)
+
   const fetchExpenses = useCallback(async (filters = {}) => {
+    // Cancel any previous in-flight request
+    if (abortRef.current) abortRef.current.abort()
+    abortRef.current = new AbortController()
+    const signal = abortRef.current.signal
+
     setLoading(true); setError(null)
     try {
-      // Filtered fetch (with search, sort, pagination)
-      // All-time fetch (no filters, no pagination — for charts)
-      const [filteredRes, allRes] = await Promise.all([
-        apiGet(filters),
-        apiGet({ limit: 9999 }),   // fetch all for charts
-      ])
+      const res = await apiGet(filters, signal)
+      const data = res.data
 
-      // New response shape: { expenses, pagination }
-      const filteredData = filteredRes.data
-      if (filteredData?.expenses) {
-        setExpenses(filteredData.expenses)
-        setPagination(filteredData.pagination)
+      if (data?.expenses) {
+        setExpenses(data.expenses)
+        setAllExpenses(data.expenses)
+        setPagination(data.pagination)
       } else {
-        // Fallback if old shape
-        setExpenses(filteredData)
+        setExpenses(data)
+        setAllExpenses(data)
       }
 
-      const allData = allRes.data
-      setAllExpenses(allData?.expenses || allData || [])
-
     } catch (err) {
+      // Ignore abort errors — they are expected when a newer request cancels this one
+      if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') return
       setError(err.response?.data?.message || 'Failed to fetch expenses')
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   const addExpense = async (expenseData) => {
@@ -49,7 +53,11 @@ export const useExpenses = () => {
       setPagination((p) => ({ ...p, total: p.total + 1 }))
       return { success: true, data }
     } catch (err) {
-      return { success: false, message: err.response?.data?.message || 'Failed to add expense' }
+      return {
+        success: false,
+        message: err.response?.data?.message || 'Failed to add expense',
+        exceedsBudget: err.response?.data?.exceedsBudget,
+      }
     }
   }
 
@@ -60,7 +68,11 @@ export const useExpenses = () => {
       setAllExpenses((prev) => prev.map((e) => (e._id === id ? data : e)))
       return { success: true, data }
     } catch (err) {
-      return { success: false, message: err.response?.data?.message || 'Failed to update expense' }
+      return {
+        success: false,
+        message: err.response?.data?.message || 'Failed to update expense',
+        exceedsBudget: err.response?.data?.exceedsBudget,
+      }
     }
   }
 

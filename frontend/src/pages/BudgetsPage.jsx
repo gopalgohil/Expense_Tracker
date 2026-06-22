@@ -6,12 +6,9 @@ const currentMonth = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-const Budgets = () => {
+const BudgetsPage = () => {
   const [month, setMonth] = useState(currentMonth())
-
-  return (
-    <BudgetPanel month={month} onMonthChange={setMonth} />
-  )
+  return <BudgetPanel month={month} onMonthChange={setMonth} />
 }
 
-export default Budgets
+export default BudgetsPage

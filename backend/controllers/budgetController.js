@@ -21,6 +21,21 @@ export const upsertBudget = async (req, res) => {
   }
 
   try {
+    // Check if new budget limit is lower than what's already spent in this category and month
+    const [year, m] = month.split('-').map(Number);
+    const startDate = new Date(Date.UTC(year, m - 1, 1));
+    const endDate   = new Date(Date.UTC(year, m, 1));
+
+    const expenses = await Expense.find({
+      userId: req.user._id,
+      category,
+      date: { $gte: startDate, $lt: endDate }
+    });
+
+    const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
+    if (Number(limit) < totalSpent) {
+      return res.status(400).json({ message: 'Budget cannot be less than the amount already spent.' });
+    }
     const budget = await Budget.findOneAndUpdate(
       { userId: req.user._id, month, category },
       { limit: Number(limit) },

@@ -12,7 +12,7 @@ export const getExpenses = async (req, res) => {
       search, minAmount, maxAmount,
       sortBy,
       page  = 1,
-      limit = 20,
+      limit = 10,
     } = req.query;
 
     const query = { userId: req.user._id };
@@ -29,9 +29,13 @@ export const getExpenses = async (req, res) => {
       };
     }
 
-    // Search — partial match on description (case-insensitive)
+    // Search — partial match on description OR category (case-insensitive)
     if (search && search.trim()) {
-      query.description = { $regex: search.trim(), $options: 'i' };
+      const regex = { $regex: search.trim(), $options: 'i' };
+      query.$or = [
+        { description: regex },
+        { category:    regex },
+      ];
     }
 
     // Amount range filter
@@ -51,7 +55,7 @@ export const getExpenses = async (req, res) => {
 
     // Pagination
     const pageNum  = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
     const skip     = (pageNum - 1) * limitNum;
 
     // Run count + data fetch in parallel
@@ -122,9 +126,10 @@ const createExpense = async (req, res) => {
       });
 
       const totalSpent = existingExpenses.reduce((sum, e) => sum + e.amount, 0);
-      if (totalSpent + Number(amount) > budget.limit) {
+      if (totalSpent + Number(amount) > budget.limit && !req.body.bypassBudget) {
         return res.status(400).json({
-          message: `Budget limit exceeded. Your budget for this category is ₹${budget.limit}. You cannot add expenses beyond the allocated budget.`
+          message: `Budget limit exceeded. Your budget for this category is ₹${budget.limit}.`,
+          exceedsBudget: true
         });
       }
     }
@@ -211,9 +216,10 @@ const updateExpense = async (req, res) => {
       });
 
       const totalSpent = existingExpenses.reduce((sum, e) => sum + e.amount, 0);
-      if (totalSpent + expense.amount > budget.limit) {
+      if (totalSpent + expense.amount > budget.limit && !req.body.bypassBudget) {
         return res.status(400).json({
-          message: `Budget limit exceeded. Your budget for this category is ₹${budget.limit}. You cannot add expenses beyond the allocated budget.`
+          message: `Budget limit exceeded. Your budget for this category is ₹${budget.limit}.`,
+          exceedsBudget: true
         });
       }
     }

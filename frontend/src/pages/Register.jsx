@@ -127,7 +127,7 @@ const Register = () => {
     setSendingOTP(true)
     try {
       await sendRegisterOTP({ email: form.email.trim() })
-      toast.success(`OTP sent to ${form.email.trim()}`)
+      toast.success(`OTP sent to ${form.email.trim()}. Please check your inbox.`)
       setStep(2)
       setOtp('')
       setOtpError('')
