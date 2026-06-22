@@ -96,27 +96,18 @@ export const sendRegisterOTP = async (req, res) => {
         <p style="font-size:13px;color:#9ca3af;text-align:center;">Spendwise — Your Personal Expense Tracker</p>
       </div>`;
 
+    let emailSent = true;
     try {
       await sendEmail({ to: trimmedEmail, subject: 'Spendwise — Verify Your Email', html });
     } catch (emailErr) {
       console.error('[sendRegisterOTP] Email send failed:', emailErr);
-      if (!isDev) {
-        // In production, email delivery is required — fail the request
-        const errMsg = (emailErr.message || '').toLowerCase();
-        let message = 'Failed to send OTP. Please try again later.';
-        if (emailErr.code === 'EAUTH' || errMsg.includes('auth') || errMsg.includes('username and password not accepted')) {
-          message = 'Our email service is misconfigured. Please contact support.';
-        } else if (errMsg.includes('recipient') || errMsg.includes('mailbox')) {
-          message = 'Could not deliver email to this address. Please check and try again.';
-        }
-        return res.status(500).json({ message: `${message} Details: ${emailErr.message || emailErr}` });
-      }
-      // In dev: OTP is already saved to DB and logged — proceed without email
-      console.warn('[DEV] Email failed but OTP is saved in DB. Check otp-debug.log for the code.');
+      emailSent = false;
     }
 
     return res.status(200).json({
-      message: 'OTP sent to your email. Please verify to continue.',
+      message: emailSent
+        ? 'OTP sent to your email. Please verify to continue.'
+        : 'OTP generated successfully (Note: Email delivery failed. Please retrieve the OTP from your database).',
     });
   } catch (error) {
     console.error(error);
@@ -321,25 +312,26 @@ export const forgotPassword = async (req, res) => {
       </div>
     `;
 
-    await sendEmail({
-      to: user.email,
-      subject: 'Spendwise Password Reset OTP',
-      html,
-    });
+    let emailSent = true;
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Spendwise Password Reset OTP',
+        html,
+      });
+    } catch (emailErr) {
+      console.error('[forgotPassword] Email send failed:', emailErr);
+      emailSent = false;
+    }
 
-    return res.status(200).json({ message: 'OTP sent successfully to your email' });
+    return res.status(200).json({
+      message: emailSent
+        ? 'OTP sent successfully to your email'
+        : 'OTP generated successfully (Note: Email delivery failed. Please retrieve the OTP from your database).',
+    });
   } catch (error) {
     console.error(error);
-    let message = 'Server error sending password reset OTP. Please try again.';
-    const errMsg = (error.message || '').toLowerCase();
-    if (error.code === 'ENOTFOUND' || errMsg.includes('enotfound') || errMsg.includes('address not found') || errMsg.includes('dns')) {
-      message = 'Email address not found or host unreachable. Please check the email address and your network connection.';
-    } else if (error.code === 'EAUTH' || errMsg.includes('auth') || errMsg.includes('username and password not accepted')) {
-      message = 'SMTP mail server authentication failed. Please check sender credentials.';
-    } else if (errMsg.includes('recipient') || errMsg.includes('mailbox')) {
-      message = 'Recipient email address not found or rejected.';
-    }
-    return res.status(500).json({ message: `${message} Details: ${error.message || error}` });
+    return res.status(500).json({ message: error.message || 'Server error sending password reset OTP.' });
   }
 };
 
