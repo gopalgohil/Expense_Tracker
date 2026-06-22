@@ -17,6 +17,8 @@ export const sendEmail = async ({ to, subject, html }) => {
       tls: {
         rejectUnauthorized: false,
       },
+      // Force IPv4 — Render free tier does not support IPv6
+      family: 4,
     });
   } else {
     // Generate a temporary Ethereal SMTP account for local testing
