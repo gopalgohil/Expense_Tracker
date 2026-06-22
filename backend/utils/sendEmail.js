@@ -3,7 +3,8 @@ import nodemailer from 'nodemailer';
 export const sendEmail = async ({ to, subject, html }) => {
   // Option 1: Resend HTTP API (Port 443 - works on Render Free Tier)
   if (process.env.RESEND_API_KEY) {
-    console.log('[sendEmail] Using Resend HTTP API...');
+    const fromAddr = process.env.SMTP_FROM || 'Spendwise Support <onboarding@resend.dev>';
+    console.log(`[sendEmail] Using Resend HTTP API... from="${fromAddr}" to="${to}"`);
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -11,7 +12,7 @@ export const sendEmail = async ({ to, subject, html }) => {
         'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: process.env.SMTP_FROM || 'Spendwise Support <onboarding@resend.dev>',
+        from: fromAddr,
         to: [to],
         subject,
         html,
@@ -19,9 +20,11 @@ export const sendEmail = async ({ to, subject, html }) => {
     });
 
     const data = await response.json();
+    console.log(`[sendEmail] Resend response status=${response.status}`, JSON.stringify(data));
     if (!response.ok) {
-      throw new Error(data.message || `Resend API Error: ${response.statusCode || response.statusText}`);
+      throw new Error(data.message || `Resend API Error: ${response.status} ${response.statusText}`);
     }
+    console.log('[sendEmail] Resend email sent successfully, id=', data.id);
     return data;
   }
 
