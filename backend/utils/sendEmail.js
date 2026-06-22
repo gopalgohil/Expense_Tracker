@@ -1,11 +1,61 @@
 import nodemailer from 'nodemailer';
 
 export const sendEmail = async ({ to, subject, html }) => {
-  let transporter;
+  // Option 1: Resend HTTP API (Port 443 - works on Render Free Tier)
+  if (process.env.RESEND_API_KEY) {
+    console.log('[sendEmail] Using Resend HTTP API...');
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: process.env.SMTP_FROM || 'Spendwise Support <onboarding@resend.dev>',
+        to: [to],
+        subject,
+        html,
+      }),
+    });
 
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `Resend API Error: ${response.statusCode || response.statusText}`);
+    }
+    return data;
+  }
+
+  // Option 2: Brevo HTTP API (Port 443 - works on Render Free Tier)
+  if (process.env.BREVO_API_KEY) {
+    console.log('[sendEmail] Using Brevo HTTP API...');
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { email: process.env.SMTP_FROM || 'no-reply@spendwise.com', name: 'Spendwise Support' },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `Brevo API Error: ${response.statusCode || response.statusText}`);
+    }
+    return data;
+  }
+
+  // Option 3: Standard SMTP (Nodemailer)
+  let transporter;
   const hasSMTP = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
 
   if (hasSMTP) {
+    console.log('[sendEmail] Using Standard SMTP Transporter...');
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
@@ -17,11 +67,11 @@ export const sendEmail = async ({ to, subject, html }) => {
       tls: {
         rejectUnauthorized: false,
       },
-      // Force IPv4 — Render free tier does not support IPv6
-      family: 4,
+      family: 4, // Force IPv4
     });
   } else {
     // Generate a temporary Ethereal SMTP account for local testing
+    console.log('[sendEmail] SMTP not configured. Attempting Ethereal/localhost fallback...');
     try {
       const testAccount = await nodemailer.createTestAccount();
       transporter = nodemailer.createTransport({
@@ -35,7 +85,6 @@ export const sendEmail = async ({ to, subject, html }) => {
       });
     } catch (err) {
       console.error('Failed to create Ethereal test account, trying default local SMTP setup:', err);
-      // fallback to localhost SMTP
       transporter = nodemailer.createTransport({
         host: 'localhost',
         port: 1025,

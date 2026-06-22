@@ -99,7 +99,7 @@ export const sendRegisterOTP = async (req, res) => {
     try {
       await sendEmail({ to: trimmedEmail, subject: 'Spendwise — Verify Your Email', html });
     } catch (emailErr) {
-      console.error('[sendRegisterOTP] Email send failed:', emailErr.message);
+      console.error('[sendRegisterOTP] Email send failed:', emailErr);
       if (!isDev) {
         // In production, email delivery is required — fail the request
         const errMsg = (emailErr.message || '').toLowerCase();
@@ -109,7 +109,7 @@ export const sendRegisterOTP = async (req, res) => {
         } else if (errMsg.includes('recipient') || errMsg.includes('mailbox')) {
           message = 'Could not deliver email to this address. Please check and try again.';
         }
-        return res.status(500).json({ message });
+        return res.status(500).json({ message: `${message} Details: ${emailErr.message || emailErr}` });
       }
       // In dev: OTP is already saved to DB and logged — proceed without email
       console.warn('[DEV] Email failed but OTP is saved in DB. Check otp-debug.log for the code.');
@@ -339,7 +339,7 @@ export const forgotPassword = async (req, res) => {
     } else if (errMsg.includes('recipient') || errMsg.includes('mailbox')) {
       message = 'Recipient email address not found or rejected.';
     }
-    return res.status(500).json({ message });
+    return res.status(500).json({ message: `${message} Details: ${error.message || error}` });
   }
 };
 
