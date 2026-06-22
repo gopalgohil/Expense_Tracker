@@ -127,7 +127,7 @@ const Register = () => {
     setSendingOTP(true)
     try {
       await sendRegisterOTP({ email: form.email.trim() })
-      toast.success(`OTP sent to ${form.email.trim()}. Please check your inbox.`)
+      toast.success(`OTP sent to ${form.email.trim()}! Check inbox or Spam/Junk folder.`, { duration: 6000 })
       setStep(2)
       setOtp('')
       setOtpError('')
@@ -314,7 +314,7 @@ const Register = () => {
                 <p className="text-sm text-ink-400 dark:text-zinc-400 mt-1 leading-relaxed">
                   We sent a 6-digit OTP to{' '}
                   <strong className="text-ink-700 dark:text-zinc-300">{form.email}</strong>.
-                  Enter it below to complete registration.
+                  {' '}<span className="text-amber-500 font-medium">If not in inbox, check Spam/Junk folder.</span>
                 </p>
               </div>
 

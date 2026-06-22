@@ -106,7 +106,7 @@ const Login = () => {
     setForgotSubmitting(true)
     try {
       const response = await forgotPassword({ email: forgotEmail.trim() })
-      toast.success(response.data?.message || 'OTP sent successfully!')
+      toast.success('OTP sent! Check your inbox or Spam/Junk folder.', { duration: 6000 })
       setForgotStep(2)
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to send OTP.'
@@ -432,6 +432,7 @@ const Login = () => {
                 <form onSubmit={handleVerifyOTP} className="space-y-4">
                   <p className="text-xs text-ink-500 dark:text-zinc-400 leading-relaxed">
                     Enter the 6-digit code sent to <strong className="text-ink-700 dark:text-zinc-350">{forgotEmail}</strong>.
+                    {' '}<span className="text-amber-500 font-medium">If you don't see it, check your Spam or Junk folder.</span>
                   </p>
                   <div>
                     <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">
