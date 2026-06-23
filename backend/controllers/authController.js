@@ -4,6 +4,8 @@ import User from '../models/User.js';
 import PendingRegistration from '../models/PendingRegistration.js';
 import { sendEmail } from '../utils/sendEmail.js';
 import fs from 'fs';
+import { verifyFirebaseToken } from '../utils/verifyFirebaseToken.js';
+import crypto from 'crypto';
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -24,7 +26,7 @@ export const getCookieOptions = (req) => {
   };
 };
 
-const sendToken = (req, res, user, statusCode) => {
+const sendToken = (req, res, user, statusCode, extra = {}) => {
   const token = generateToken(user._id);
   const cookieOpts = getCookieOptions(req);
 
@@ -39,6 +41,8 @@ const sendToken = (req, res, user, statusCode) => {
     email:    user.email,
     avatar:   user.avatar   || null,
     currency: user.currency || 'INR',
+    authProvider: user.authProvider || 'local',
+    ...extra
   });
 };
 
@@ -430,3 +434,47 @@ export const resetPassword = async (req, res) => {
     return res.status(500).json({ message: error.message || 'Server error resetting password' });
   }
 };
+
+// POST /api/auth/google-login
+export const googleLogin = async (req, res) => {
+  const { idToken } = req.body;
+  try {
+    if (!idToken) {
+      return res.status(400).json({ message: 'Google ID Token is required.' });
+    }
+
+    const decoded = await verifyFirebaseToken(idToken);
+    if (!decoded || !decoded.email) {
+      return res.status(401).json({ message: 'Invalid Google ID Token.' });
+    }
+
+    const email = decoded.email.trim().toLowerCase();
+    const name = decoded.name || email.split('@')[0];
+
+    // Find or create user
+    let user = await User.findOne({ email });
+    let isNewUser = false;
+
+    if (!user) {
+      isNewUser = true;
+      // Auto-create account with a random password to satisfy schema constraint
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      user = await User.create({
+        name,
+        email,
+        password: randomPassword,
+        avatar: decoded.picture || null,
+        authProvider: 'google',
+      });
+      console.log(`[googleLogin] Created new Google user: ${email}`);
+    } else {
+      console.log(`[googleLogin] Logged in existing user: ${email}`);
+    }
+
+    return sendToken(req, res, user, 200, { isNewUser });
+  } catch (error) {
+    console.error('[googleLogin] Error:', error);
+    return res.status(500).json({ message: error.message || 'Google Login failed.' });
+  }
+};
+

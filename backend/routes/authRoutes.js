@@ -10,6 +10,7 @@ import {
   resetPassword,
   sendRegisterOTP,
   verifyRegisterOTP,
+  googleLogin,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { sendEmail } from '../utils/sendEmail.js';
@@ -59,6 +60,7 @@ router.get('/test-email', async (req, res) => {
 
 router.post('/register',              registerUser);
 router.post('/login',                 loginUser);
+router.post('/google-login',          googleLogin);
 router.post('/logout',                logoutUser);
 router.get('/me',                     protect, getUserProfile);
 router.put('/avatar',                 protect, updateAvatar);

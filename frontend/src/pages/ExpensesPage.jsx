@@ -220,206 +220,214 @@ const ExpensesPage = () => {
         </div>
       </FadeInSection>
 
-      <FadeInSection delay={0.05}>
-        {/* ── Filter card ── */}
-        <div className="rounded-2xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-none p-5 space-y-5">
+      {/* Two Column Layout on Desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 lg:gap-16 items-start">
+        
+        {/* Left Side: Filter Card (4 Columns for wider filter) */}
+        <div className="md:col-span-4 space-y-5">
+          <FadeInSection delay={0.05}>
+            {/* Filter card */}
+            <div className="rounded-2xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-none p-6 lg:p-7 space-y-6">
+              {/* Section label */}
+              <p className="text-[11px] font-bold tracking-widest uppercase text-gray-400 dark:text-zinc-500">
+                Filter by period
+              </p>
 
-          {/* Section label */}
-          <p className="text-[11px] font-bold tracking-widest uppercase text-gray-400 dark:text-zinc-500">
-            Filter by period
-          </p>
-
-          {/* Tab strip */}
-          <div className="bg-gray-100 dark:bg-zinc-700/60 border border-gray-200 dark:border-zinc-600/50 p-1 rounded-2xl flex items-center gap-1 w-full max-w-lg">
-            {[
-              { id: 'monthly', label: 'Monthly' },
-              { id: 'yearly',  label: 'Yearly'  },
-              { id: 'custom',  label: 'Custom'  },
-              { id: 'all',     label: 'All Time' },
-            ].map((tab) => {
-              const active = filterTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => { setFilterTab(tab.id); setPage(1) }}
-                  className={`py-2 px-4 flex-1 text-center text-sm font-semibold rounded-xl transition-all duration-200 ${
-                    active
-                      ? 'bg-white dark:bg-zinc-600 text-[#1e3825] dark:text-emerald-300 shadow-[0_1px_4px_rgba(0,0,0,0.12)] dark:shadow-none border border-gray-200 dark:border-zinc-500'
-                      : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200 hover:bg-gray-200/60 dark:hover:bg-zinc-600/40'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Period-specific inputs */}
-          <div>
-            {filterTab === 'monthly' && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-zinc-500 w-14 shrink-0">Month</span>
-                <input
-                  type="month"
-                  value={filters.month}
-                  onChange={(e) => { setFilters((p) => ({ ...p, month: e.target.value })); setPage(1) }}
-                  className="input-field max-w-[200px] !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 focus:!border-sage"
-                  max={currentMonth()}
-                />
-              </div>
-            )}
-
-            {filterTab === 'yearly' && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-zinc-500 w-14 shrink-0">Year</span>
-                <select
-                  value={filters.year}
-                  onChange={(e) => { setFilters((p) => ({ ...p, year: e.target.value })); setPage(1) }}
-                  className="input-field max-w-[150px] !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600"
-                >
-                  {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                    <option key={y} value={y.toString()}>{y}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {filterTab === 'custom' && (
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-zinc-500 w-16 shrink-0">Start</span>
-                    <input
-                      type="date"
-                      value={filters.startDate}
-                      onChange={(e) => {
-                        setFilters((p) => ({ ...p, startDate: e.target.value }))
-                        setPage(1)
-                      }}
-                      className={`input-field max-w-[170px] !bg-gray-50 dark:!bg-zinc-700/60 dark:!border-zinc-600 ${
-                        dateError
-                          ? '!border-red-400 focus:!ring-red-300/30'
-                          : '!border-gray-300 focus:!border-sage'
+              {/* Tab strip */}
+              <div className="bg-gray-100 dark:bg-zinc-700/60 border border-gray-200 dark:border-zinc-600/50 p-1.5 rounded-2xl flex flex-wrap items-center gap-1 w-full">
+                {[
+                  { id: 'monthly', label: 'Monthly' },
+                  { id: 'yearly',  label: 'Yearly'  },
+                  { id: 'custom',  label: 'Custom'  },
+                  { id: 'all',     label: 'All' },
+                ].map((tab) => {
+                  const active = filterTab === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => { setFilterTab(tab.id); setPage(1) }}
+                      className={`py-2 px-3.5 flex-1 text-center text-xs font-semibold rounded-xl transition-all duration-200 ${
+                        active
+                          ? 'bg-white dark:bg-zinc-600 text-[#1e3825] dark:text-emerald-300 shadow-[0_1px_4px_rgba(0,0,0,0.12)] dark:shadow-none border border-gray-200 dark:border-zinc-500'
+                          : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-200 hover:bg-gray-200/60 dark:hover:bg-zinc-600/40'
                       }`}
-                      max={new Date().toISOString().split('T')[0]}
+                    >
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Period-specific inputs */}
+              <div>
+                {filterTab === 'monthly' && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500">Month</span>
+                    <input
+                      type="month"
+                      value={filters.month}
+                      onChange={(e) => { setFilters((p) => ({ ...p, month: e.target.value })); setPage(1) }}
+                      className="input-field w-full !py-3 !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 focus:!border-sage"
+                      max={currentMonth()}
                     />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-zinc-500 w-16 shrink-0">End</span>
-                    <input
-                      type="date"
-                      value={filters.endDate}
-                      onChange={(e) => {
-                        setFilters((p) => ({ ...p, endDate: e.target.value }))
-                        setPage(1)
-                      }}
-                      className={`input-field max-w-[170px] !bg-gray-50 dark:!bg-zinc-700/60 dark:!border-zinc-600 ${
-                        dateError
-                          ? '!border-red-400 focus:!ring-red-300/30'
-                          : '!border-gray-300 focus:!border-sage'
-                      }`}
-                      max={new Date().toISOString().split('T')[0]}
-                    />
+                )}
+
+                {filterTab === 'yearly' && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500">Year</span>
+                    <select
+                      value={filters.year}
+                      onChange={(e) => { setFilters((p) => ({ ...p, year: e.target.value })); setPage(1) }}
+                      className="input-field w-full !py-3 !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600"
+                    >
+                      {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                        <option key={y} value={y.toString()}>{y}</option>
+                      ))}
+                    </select>
                   </div>
-                </div>
-                {dateError && (
-                  <p className="text-xs font-medium text-red-500 dark:text-red-400 flex items-center gap-1.5">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    {dateError}
+                )}
+
+                {filterTab === 'custom' && (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500">Start Date</span>
+                        <input
+                          type="date"
+                          value={filters.startDate}
+                          onChange={(e) => {
+                            setFilters((p) => ({ ...p, startDate: e.target.value }))
+                            setPage(1)
+                          }}
+                          className={`input-field w-full !py-3 !bg-gray-50 dark:!bg-zinc-700/60 dark:!border-zinc-600 ${
+                            dateError
+                              ? '!border-red-400 focus:!ring-red-300/30'
+                              : '!border-gray-300 focus:!border-sage'
+                          }`}
+                          max={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500">End Date</span>
+                        <input
+                          type="date"
+                          value={filters.endDate}
+                          onChange={(e) => {
+                            setFilters((p) => ({ ...p, endDate: e.target.value }))
+                            setPage(1)
+                          }}
+                          className={`input-field w-full !py-3 !bg-gray-50 dark:!bg-zinc-700/60 dark:!border-zinc-600 ${
+                            dateError
+                              ? '!border-red-400 focus:!ring-red-300/30'
+                              : '!border-gray-300 focus:!border-sage'
+                          }`}
+                          max={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                    </div>
+                    {dateError && (
+                      <p className="text-xs font-medium text-red-500 dark:text-red-400 flex items-center gap-1.5">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        {dateError}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {filterTab === 'all' && (
+                  <p className="text-xs text-gray-400 dark:text-zinc-500 italic flex items-center gap-1.5">
+                    <span>📂</span> Showing all transactions.
                   </p>
                 )}
               </div>
-            )}
 
-            {filterTab === 'all' && (
-              <p className="text-xs text-gray-400 dark:text-zinc-500 italic flex items-center gap-1.5">
-                <span>📂</span> Showing all transactions since account creation.
-              </p>
-            )}
-          </div>
+              {/* Divider */}
+              <div className="border-t border-gray-200 dark:border-zinc-700" />
 
-          {/* Divider */}
-          <div className="border-t border-gray-200 dark:border-zinc-700" />
+              {/* Category row */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 dark:text-zinc-500">
+                  Category
+                </label>
+                <select
+                  value={filters.category}
+                  onChange={(e) => { setFilters((p) => ({ ...p, category: e.target.value })); setPage(1) }}
+                  className="input-field w-full !py-3 !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 hover:!border-gray-400 transition-colors"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c || 'All categories'}</option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Category row */}
-          <div className="flex items-end gap-3">
-            <div className="flex-1 space-y-1.5">
-              <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 dark:text-zinc-500">
-                Category
-              </label>
-              <select
-                value={filters.category}
-                onChange={(e) => { setFilters((p) => ({ ...p, category: e.target.value })); setPage(1) }}
-                className="input-field !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 hover:!border-gray-400 transition-colors"
+              <button
+                type="button"
+                onClick={handleResetAll}
+                className="w-full py-3.5 rounded-xl text-xs font-semibold text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 border border-gray-300 dark:border-zinc-600 transition-all duration-150"
               >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c || 'All categories'}</option>
-                ))}
-              </select>
+                Clear all filters
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleResetAll}
-              className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 border border-gray-300 dark:border-zinc-600 transition-all duration-150"
-            >
-              Reset filters
-            </button>
-          </div>
+          </FadeInSection>
         </div>
-      </FadeInSection>
 
-      <FadeInSection delay={0.08}>
-        <SearchFilterBar
-          search={search}
-          onSearchChange={(v) => { setSearch(v); setPage(1) }}
-          advanced={advanced}
-          onAdvancedChange={(v) => { setAdvanced((p) => ({ ...p, ...v })); setPage(1) }}
-          onReset={handleResetAll}
-        />
-      </FadeInSection>
+        {/* Right Side: Search, List and Pagination (8 Columns) */}
+        <div className="md:col-span-8 space-y-5">
+          <FadeInSection delay={0.08}>
+            <SearchFilterBar
+              search={search}
+              onSearchChange={(v) => { setSearch(v); setPage(1) }}
+              advanced={advanced}
+              onAdvancedChange={(v) => { setAdvanced((p) => ({ ...p, ...v })); setPage(1) }}
+              onReset={handleResetAll}
+            />
+          </FadeInSection>
 
-      {loading ? (
-        <ExpenseListSkeleton count={5} />
-      ) : error ? (
-        <div className="card p-8 text-center">
-          <p className="text-coral text-sm font-medium">{error}</p>
-          <HoverButton onClick={() => fetchExpenses(buildParams())} className="btn-ghost mt-3 text-sm">
-            Try again
-          </HoverButton>
+          {loading ? (
+            <ExpenseListSkeleton count={5} />
+          ) : error ? (
+            <div className="card p-8 text-center">
+              <p className="text-coral text-sm font-medium">{error}</p>
+              <HoverButton onClick={() => fetchExpenses(buildParams())} className="btn-ghost mt-3 text-sm">
+                Try again
+              </HoverButton>
+            </div>
+          ) : expenses.length === 0 ? (
+            <div className="card p-12 text-center bg-white dark:bg-zinc-800/40">
+              <p className="text-ink-600 dark:text-zinc-450 font-medium">
+                {filterTab === 'custom'
+                  ? 'No expenses found for the selected date range'
+                  : 'No expenses found'}
+              </p>
+              <p className="text-ink-400 dark:text-zinc-500 text-sm mt-1">Try adjusting your filters</p>
+            </div>
+          ) : (
+            <>
+              <AnimatedList className="space-y-2.5">
+                {expenses.map((expense, idx) => (
+                  <ListItem key={expense._id} index={idx}>
+                    <ExpenseCard
+                      expense={expense}
+                      onEdit={handleEditClick}
+                      onUpdate={editExpense}
+                      onDelete={handleDeleteClick}
+                    />
+                  </ListItem>
+                ))}
+              </AnimatedList>
+              <Pagination
+                pagination={pagination}
+                onPageChange={setPage}
+                onLimitChange={(n) => { setPageSize(n); setPage(1) }}
+              />
+            </>
+          )}
         </div>
-      ) : expenses.length === 0 ? (
-        <div className="card p-12 text-center">
-          <p className="text-ink-600 font-medium">
-            {filterTab === 'custom'
-              ? 'No expenses found for the selected date range'
-              : 'No expenses found'}
-          </p>
-          <p className="text-ink-400 text-sm mt-1">Try adjusting your filters</p>
-        </div>
-      ) : (
-        <>
-          <AnimatedList className="space-y-2.5">
-            {expenses.map((expense, idx) => (
-              <ListItem key={expense._id} index={idx}>
-                <ExpenseCard
-                  expense={expense}
-                  onEdit={handleEditClick}
-                  onUpdate={editExpense}
-                  onDelete={handleDeleteClick}
-                />
-              </ListItem>
-            ))}
-          </AnimatedList>
-          <Pagination
-            pagination={pagination}
-            onPageChange={setPage}
-            onLimitChange={(n) => { setPageSize(n); setPage(1) }}
-          />
-        </>
-      )}
+      </div>
 
       <ScaleModal
         open={isFormOpen}

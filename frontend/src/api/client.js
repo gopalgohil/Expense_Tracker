@@ -14,6 +14,7 @@ const SKIP_REDIRECT = [
   '/user/change-password',
   '/auth/me',
   '/auth/login',
+  '/auth/google-login',
   '/auth/register',
   '/auth/forgot-password',
   '/auth/verify-otp',
@@ -48,6 +49,7 @@ export const verifyOTP          = (data) => api.post('/auth/verify-otp',        
 export const resetPassword      = (data) => api.post('/auth/reset-password',      data)
 export const sendRegisterOTP    = (data) => api.post('/auth/send-register-otp',   data)
 export const verifyRegisterOTP  = (data) => api.post('/auth/verify-register-otp', data)
+export const googleLogin        = (data) => api.post('/auth/google-login',        data)
 
 // ── Expenses ─────────────────────────────────────
 export const getExpenses    = (params, signal) => api.get('/expenses',    { params, signal })

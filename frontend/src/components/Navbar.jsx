@@ -42,9 +42,18 @@ const Navbar = () => {
               </svg>
             </Link>
             <div className="hidden sm:flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-sage-light flex items-center justify-center text-sage text-xs font-semibold">
-                {initials}
-              </div>
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-7 h-7 rounded-full object-cover border border-ink-150"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-sage-light flex items-center justify-center text-sage text-xs font-semibold">
+                  {initials}
+                </div>
+              )}
               <span className="text-sm text-ink-600 font-medium">{user.name}</span>
             </div>
             <button onClick={() => { logout(); navigate('/login') }} className="btn-ghost text-sm py-1.5 px-3">

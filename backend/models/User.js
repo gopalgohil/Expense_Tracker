@@ -30,6 +30,11 @@ const userSchema = new mongoose.Schema(
       enum: ['INR', 'USD', 'EUR'],
       default: 'INR',
     },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+    },
     resetPasswordOTP: {
       type: String,
       default: null,

@@ -83,33 +83,53 @@ const SummaryCards = ({ summary, topCats }) => {
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {cards.map((card, i) => (
-        <FadeInSection key={card.label} delay={i * 0.08}>
-          <motion.div
-            className="card p-4 flex flex-col gap-3 h-full hover:shadow-lift transition-shadow duration-300"
-            whileHover={{ y: -2 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-ink-400 uppercase tracking-wider">{card.label}</p>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${card.color}`}>
-                {card.icon}
+      {cards.map((card, i) => {
+        const isHero = card.label === 'Total Spent'
+        return (
+          <FadeInSection key={card.label} delay={i * 0.08}>
+            <motion.div
+              className={`card p-4 flex flex-col gap-3 h-full hover:shadow-lift transition-all duration-300 relative overflow-hidden ${
+                isHero 
+                  ? 'bg-gradient-to-br from-[#1e3825] via-[#162f1e] to-[#0f2214] text-white border-emerald-800/40 shadow-lg shadow-emerald-950/20' 
+                  : ''
+              }`}
+              whileHover={{ y: -2 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Glowing Background Blur for Hero Card */}
+              {isHero && (
+                <div className="absolute top-[-30%] right-[-20%] w-[130px] h-[130px] rounded-full bg-emerald-400/20 blur-[30px] pointer-events-none animate-pulse" />
+              )}
+
+              <div className="flex items-center justify-between relative z-10">
+                <p className={`text-xs font-medium uppercase tracking-wider ${isHero ? 'text-emerald-300/90' : 'text-ink-400 dark:text-zinc-500'}`}>
+                  {card.label}
+                </p>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  isHero ? 'bg-white/10 text-emerald-300 border border-white/10' : card.color
+                }`}>
+                  {card.icon}
+                </div>
               </div>
-            </div>
-            <div>
-              <p className={`text-xl font-bold font-mono ${card.valueColor || 'text-ink-800'}`}>
-                {card.numeric != null ? (
-                  <>
-                    {card.prefix}
-                    <CountUpNumber value={card.numeric} decimals={card.decimals} />
-                  </>
-                ) : card.text}
-              </p>
-              <p className="text-xs text-ink-400 mt-0.5">{card.sub}</p>
-            </div>
-          </motion.div>
-        </FadeInSection>
-      ))}
+              <div className="relative z-10">
+                <p className={`text-xl font-bold font-mono ${
+                  isHero ? 'text-white' : (card.valueColor || 'text-ink-800 dark:text-zinc-150')
+                }`}>
+                  {card.numeric != null ? (
+                    <>
+                      {card.prefix}
+                      <CountUpNumber value={card.numeric} decimals={card.decimals} />
+                    </>
+                  ) : card.text}
+                </p>
+                <p className={`text-xs mt-0.5 ${isHero ? 'text-emerald-200/70' : 'text-ink-400 dark:text-zinc-500'}`}>
+                  {card.sub}
+                </p>
+              </div>
+            </motion.div>
+          </FadeInSection>
+        )
+      })}
     </div>
   )
 }

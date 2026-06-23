@@ -4,6 +4,7 @@ import Sidebar from './Sidebar'
 import SignOutModal from './SignOutModal'
 import DarkModeToggle from './DarkModeToggle'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import ScaleModal from './animations/ScaleModal'
 import ExpenseForm from './ExpenseForm'
 import { useExpenses } from '../hooks/useExpenses'
@@ -17,6 +18,7 @@ const Layout = () => {
   const [formLoading, setFormLoading] = useState(false)
 
   const { user, logout } = useAuth()
+  const { dark, toggleDark } = useTheme()
   const { addExpense } = useExpenses()
   const navigate = useNavigate()
   const location = useLocation()
@@ -121,9 +123,18 @@ const Layout = () => {
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-2.5 hover:opacity-90 transition-opacity focus:outline-none py-1 px-1.5 rounded-xl border border-transparent hover:border-ink-100 dark:hover:border-zinc-800"
               >
-                <div className="w-9 h-9 rounded-full bg-sage-light flex items-center justify-center text-sage text-sm font-bold flex-shrink-0">
-                  {initials}
-                </div>
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-9 h-9 rounded-full object-cover border border-ink-150 dark:border-zinc-800 flex-shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-sage-light flex items-center justify-center text-sage text-sm font-bold flex-shrink-0">
+                    {initials}
+                  </div>
+                )}
                 <div className="text-left leading-tight hidden xl:block pr-1">
                   <p className="text-sm font-bold text-ink-800 dark:text-zinc-200">{user?.name}</p>
                   <p className="text-xs text-ink-400 dark:text-zinc-500 font-medium">{user?.email}</p>
@@ -156,15 +167,26 @@ const Layout = () => {
                   </button>
 
                   {/* Theme Item */}
-                  <div className="flex items-center justify-between px-3 py-2 rounded-xl text-sm text-ink-600 dark:text-zinc-300 font-medium">
-                    <div className="flex items-center gap-3">
-                      <svg className="w-4 h-4 text-ink-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                      </svg>
-                      <span>Theme</span>
-                    </div>
-                    <DarkModeToggle />
-                  </div>
+                  <button
+                    onClick={toggleDark}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-ink-600 dark:text-zinc-300 hover:bg-ink-50 dark:hover:bg-zinc-800 transition-colors font-medium text-left"
+                  >
+                    {dark ? (
+                      <>
+                        <svg className="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                        </svg>
+                        <span>Light Mode</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                        </svg>
+                        <span>Dark Mode</span>
+                      </>
+                    )}
+                  </button>
 
                   <hr className="border-ink-100 dark:border-zinc-800 my-1.5" />
 
@@ -205,9 +227,18 @@ const Layout = () => {
           <div className="relative" ref={mobileDropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="w-8 h-8 rounded-full bg-sage-light flex items-center justify-center text-sage text-xs font-bold"
+              className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-sage-light focus:outline-none"
             >
-              {initials}
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="text-sage text-xs font-bold">{initials}</span>
+              )}
             </button>
 
             {/* Profile Dropdown Card (Mobile) */}
@@ -233,15 +264,26 @@ const Layout = () => {
                 </button>
 
                 {/* Theme Item */}
-                <div className="flex items-center justify-between px-3 py-2 rounded-xl text-sm text-ink-600 dark:text-zinc-300 font-medium">
-                  <div className="flex items-center gap-3">
-                    <svg className="w-4 h-4 text-ink-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                    </svg>
-                    <span>Theme</span>
-                  </div>
-                  <DarkModeToggle />
-                </div>
+                <button
+                  onClick={toggleDark}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-ink-600 dark:text-zinc-300 hover:bg-ink-50 dark:hover:bg-zinc-800 transition-colors font-medium text-left"
+                >
+                  {dark ? (
+                    <>
+                      <svg className="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                      </svg>
+                      <span>Light Mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                      </svg>
+                      <span>Dark Mode</span>
+                    </>
+                  )}
+                </button>
 
                 <hr className="border-ink-100 dark:border-zinc-800 my-1.5" />
 
@@ -262,7 +304,7 @@ const Layout = () => {
 
         {/* Scrollable page body */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>

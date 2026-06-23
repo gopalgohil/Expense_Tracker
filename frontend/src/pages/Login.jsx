@@ -4,9 +4,11 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { forgotPassword, verifyOTP, resetPassword } from '../api/client'
 import hashPassword from '../utils/hashPassword'
+import { signInWithPopup } from 'firebase/auth'
+import { auth, googleProvider } from '../config/firebase'
 
 const Login = () => {
-  const { login, user, initializing } = useAuth()
+  const { login, loginWithGoogle, user, initializing } = useAuth()
   const navigate = useNavigate()
 
   // Mode: 'login' | 'forgot'
@@ -197,6 +199,37 @@ const Login = () => {
     setForgotErrors({})
   }
 
+  const handleGoogleLogin = async () => {
+    const key = import.meta.env.VITE_FIREBASE_API_KEY
+    if (!key || key.includes('dummy') || key.includes('your-actual') || key.trim() === '') {
+      toast.error('Google Sign-In is not configured. Please fill in your actual Firebase configuration in frontend/.env', { duration: 6000 })
+      return
+    }
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider)
+      const idToken = await result.user.getIdToken()
+      const res = await loginWithGoogle(idToken)
+      if (res.success) {
+        if (res.isNewUser) {
+          toast.success(`Welcome to Spendwise, ${res.name || 'friend'}! Your account has been created via Google.`, { duration: 6000 })
+        } else {
+          toast.success(`Welcome back, ${res.name || 'friend'}!`)
+        }
+        navigate('/dashboard')
+      } else {
+        toast.error(res.message || 'Google login failed')
+      }
+    } catch (error) {
+      console.error(error)
+      if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
+        toast.error('Invalid Firebase API key. Please check your credentials in frontend/.env', { duration: 6000 })
+      } else if (error.code !== 'auth/popup-closed-by-user') {
+        toast.error(error.message || 'Google sign-in was cancelled or failed.')
+      }
+    }
+  }
+
   const busy = submitting
   const isForgotBusy = forgotSubmitting
 
@@ -259,7 +292,7 @@ const Login = () => {
       <div className="w-full lg:w-1/2 min-h-screen flex flex-col justify-between items-center pt-8 bg-zinc-50 dark:bg-zinc-950 relative overflow-hidden">
         
         {/* Top/Center content wrapper */}
-        <div className="my-auto w-full max-w-[440px] px-6 py-8 flex flex-col justify-center">
+        <div className="my-auto w-full max-w-[440px] p-8 sm:p-10 flex flex-col justify-center animated-border-card">
           
           {/* Logo Brand Header */}
           <div className="flex flex-col items-center mb-6">
@@ -429,7 +462,7 @@ const Login = () => {
               {/* Google Button */}
               <button
                 type="button"
-                onClick={() => toast('Google Sign-In is not configured for local development.', { icon: 'ℹ️' })}
+                onClick={handleGoogleLogin}
                 className="w-full py-3 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-ink-200 dark:border-zinc-800 text-ink-700 dark:text-zinc-300 font-semibold text-sm hover:bg-ink-50 dark:hover:bg-zinc-800 transition-colors duration-150 flex items-center justify-center gap-2"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24">
@@ -722,17 +755,6 @@ const Login = () => {
               )}
             </div>
           )}
-        </div>
-
-        {/* Leafy botanical image at the bottom */}
-        <div className="w-full mt-auto flex justify-center z-10 pointer-events-none">
-          <div className="w-full max-w-[440px] h-[160px] overflow-hidden rounded-t-[32px] border-t border-x border-sage/10 shadow-lg relative bg-white dark:bg-zinc-950">
-            <img 
-              src="/leaves.png" 
-              alt="leaves decoration" 
-              className="w-full h-full object-cover grayscale brightness-95 opacity-80 contrast-125 hover:grayscale-0 transition-all duration-700 pointer-events-auto cursor-pointer" 
-            />
-          </div>
         </div>
 
       </div>

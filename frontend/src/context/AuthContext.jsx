@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe } from '../api/client'
+import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe, googleLogin as apiGoogleLogin } from '../api/client'
 import api from '../api/client'
 import hashPassword from '../utils/hashPassword'
 
@@ -87,6 +87,18 @@ export const AuthProvider = ({ children }) => {
     } finally { setLoading(false) }
   }
 
+  const loginWithGoogle = async (idToken) => {
+    setLoading(true)
+    try {
+      const { data } = await apiGoogleLogin({ idToken })
+      const u = syncUser(data)
+      setSessionValidated(true)
+      return { success: true, isNewUser: data.isNewUser, name: data.name }
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Google login failed' }
+    } finally { setLoading(false) }
+  }
+
   const register = async (name, email, password, preHashed = false) => {
     setLoading(true)
     try {
@@ -126,7 +138,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{
-      user, login, register, logout,
+      user, login, loginWithGoogle, register, logout,
       loading, initializing, sessionValidated,
       updateUser, uploadAvatar,
     }}>

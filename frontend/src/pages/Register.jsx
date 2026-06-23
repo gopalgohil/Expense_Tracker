@@ -4,6 +4,8 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { sendRegisterOTP, verifyRegisterOTP } from '../api/client'
 import hashPassword from '../utils/hashPassword'
+import { signInWithPopup } from 'firebase/auth'
+import { auth, googleProvider } from '../config/firebase'
 
 const EyeIcon = ({ visible }) => visible ? (
   <svg width="20" height="20" fill="none" stroke="currentColor"
@@ -66,7 +68,7 @@ const LeftPanel = () => (
 )
 
 const Register = () => {
-  const { register } = useAuth()
+  const { register, loginWithGoogle } = useAuth()
   const navigate     = useNavigate()
 
   // step 1 = fill form + send OTP, step 2 = enter OTP
@@ -84,6 +86,37 @@ const Register = () => {
   const [otpError, setOtpError]     = useState('')
   const [verifying, setVerifying]   = useState(false)
   const [resending, setResending]   = useState(false)
+
+  const handleGoogleLogin = async () => {
+    const key = import.meta.env.VITE_FIREBASE_API_KEY
+    if (!key || key.includes('dummy') || key.includes('your-actual') || key.trim() === '') {
+      toast.error('Google Sign-In is not configured. Please fill in your actual Firebase configuration in frontend/.env', { duration: 6000 })
+      return
+    }
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider)
+      const idToken = await result.user.getIdToken()
+      const res = await loginWithGoogle(idToken)
+      if (res.success) {
+        if (res.isNewUser) {
+          toast.success(`Welcome to Spendwise, ${res.name || 'friend'}! Your account has been created via Google.`, { duration: 6000 })
+        } else {
+          toast.success(`Welcome back, ${res.name || 'friend'}!`)
+        }
+        navigate('/dashboard')
+      } else {
+        toast.error(res.message || 'Google login failed')
+      }
+    } catch (error) {
+      console.error(error)
+      if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
+        toast.error('Invalid Firebase API key. Please check your credentials in frontend/.env', { duration: 6000 })
+      } else if (error.code !== 'auth/popup-closed-by-user') {
+        toast.error(error.message || 'Google sign-in was cancelled or failed.')
+      }
+    }
+  }
 
   const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }))
@@ -199,33 +232,32 @@ const Register = () => {
       <div className="w-full lg:w-1/2 min-h-screen flex flex-col justify-between items-center pt-8 bg-zinc-50 dark:bg-zinc-950 relative overflow-hidden">
         
         {/* Top/Center content wrapper */}
-        <div className="my-auto w-full max-w-[440px] px-6 py-8 flex flex-col justify-center">
+        <div className="my-auto w-full max-w-[440px] py-6 px-7 sm:py-7 sm:px-9 flex flex-col justify-center animated-border-card">
           
           {/* Logo Brand Header */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="w-12 h-12 bg-[#1e3825] rounded-2xl flex items-center justify-center mb-3 shadow-md">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <div className="flex flex-col items-center mb-3">
+            <div className="w-10 h-10 bg-[#1e3825] rounded-2xl flex items-center justify-center mb-2 shadow-md">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                 <rect x="3" y="4" width="18" height="16" rx="2" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 12h.01M3 10h18M10 14h4" />
               </svg>
             </div>
-            <h1 className="text-xl font-extrabold text-ink-900 dark:text-zinc-100 tracking-tight">Spendwise</h1>
-            <span className="text-[10px] font-bold text-ink-400 dark:text-zinc-500 tracking-[0.2em] uppercase mt-1">VERDANT PRECISION</span>
+            <h1 className="text-lg font-extrabold text-ink-900 dark:text-zinc-100 tracking-tight">Spendwise</h1>
           </div>
 
           {step === 1 ? (
             <>
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-ink-900 dark:text-zinc-100">Create Account</h2>
-                <p className="text-sm text-ink-405 dark:text-zinc-400 mt-1 leading-relaxed">
+              <div className="text-center mb-3">
+                <h2 className="text-lg font-bold text-ink-900 dark:text-zinc-100">Create Account</h2>
+                <p className="text-xs text-ink-405 dark:text-zinc-400 mt-0.5 leading-relaxed">
                   Please enter your details to continue
                 </p>
               </div>
 
-              <form onSubmit={handleSendOTP} className="space-y-4" noValidate>
+              <form onSubmit={handleSendOTP} className="space-y-3" noValidate>
                 {/* Name */}
                 <div>
-                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">Full Name</label>
+                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1 block">Full Name</label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 dark:text-zinc-500">
                       <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -236,14 +268,14 @@ const Register = () => {
                     <input name="name" type="text" placeholder="Your full name"
                       value={form.name} onChange={handleChange} autoComplete="name"
                       style={{ paddingLeft: '44px', border: errors.name ? '1.5px solid #ef4444' : undefined }}
-                      className="input-field" />
+                      className="input-field py-2.5" />
                   </div>
-                  {errors.name && <p style={{ color:'#ef4444', fontSize:12, marginTop:4, fontWeight:500 }}>⚠ {errors.name}</p>}
+                  {errors.name && <p style={{ color:'#ef4444', fontSize:11, marginTop:3, fontWeight:500 }}>⚠ {errors.name}</p>}
                 </div>
 
                 {/* Email */}
                 <div>
-                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">Email</label>
+                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1 block">Email</label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 dark:text-zinc-500">
                       <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -254,14 +286,14 @@ const Register = () => {
                     <input name="email" type="email" placeholder="name@company.com"
                       value={form.email} onChange={handleChange} autoComplete="email"
                       style={{ paddingLeft: '44px', border: errors.email ? '1.5px solid #ef4444' : undefined }}
-                      className="input-field" />
+                      className="input-field py-2.5" />
                   </div>
-                  {errors.email && <p style={{ color:'#ef4444', fontSize:12, marginTop:4, fontWeight:500 }}>⚠ {errors.email}</p>}
+                  {errors.email && <p style={{ color:'#ef4444', fontSize:11, marginTop:3, fontWeight:500 }}>⚠ {errors.email}</p>}
                 </div>
 
                 {/* Password */}
                 <div>
-                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">Password</label>
+                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1 block">Password</label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 dark:text-zinc-500">
                       <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -276,26 +308,26 @@ const Register = () => {
                       onCut={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()}
                       onDrop={(e) => e.preventDefault()}
                       style={{ paddingLeft: '44px', paddingRight: 44, border: errors.password ? '1.5px solid #ef4444' : undefined }}
-                      className="input-field" />
+                      className="input-field py-2.5" />
                     <button type="button" tabIndex={-1} onClick={() => setShowPass(p => !p)}
                       style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:0, color:'#9ca3af', display:'flex' }}>
                       <EyeIcon visible={showPass} />
                     </button>
                   </div>
                   {strength && (
-                    <div style={{ marginTop:6 }}>
-                      <div style={{ height:4, background:'#e5e7eb', borderRadius:4, overflow:'hidden' }}>
+                    <div style={{ marginTop:4 }}>
+                      <div style={{ height:3, background:'#e5e7eb', borderRadius:4, overflow:'hidden' }}>
                         <div style={{ height:'100%', width:strength.w, background:strength.color, borderRadius:4, transition:'width 0.3s' }} />
                       </div>
-                      <p style={{ fontSize:11, color:strength.color, marginTop:2, fontWeight:500 }}>{strength.label} password</p>
+                      <p style={{ fontSize:10, color:strength.color, marginTop:2, fontWeight:500 }}>{strength.label} password</p>
                     </div>
                   )}
-                  {errors.password && <p style={{ color:'#ef4444', fontSize:12, marginTop:4, fontWeight:500 }}>⚠ {errors.password}</p>}
+                  {errors.password && <p style={{ color:'#ef4444', fontSize:11, marginTop:3, fontWeight:500 }}>⚠ {errors.password}</p>}
                 </div>
 
                 {/* Confirm Password */}
                 <div>
-                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">Confirm Password</label>
+                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1 block">Confirm Password</label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 dark:text-zinc-500">
                       <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -310,25 +342,25 @@ const Register = () => {
                       onCut={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()}
                       onDrop={(e) => e.preventDefault()}
                       style={{ paddingLeft: '44px', paddingRight: 44, border: errors.confirm ? '1.5px solid #ef4444' : undefined }}
-                      className="input-field" />
+                      className="input-field py-2.5" />
                     <button type="button" tabIndex={-1} onClick={() => setShowConfirm(p => !p)}
                       style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:0, color:'#9ca3af', display:'flex' }}>
                       <EyeIcon visible={showConfirm} />
                     </button>
                   </div>
                   {form.confirm && (
-                    <p style={{ fontSize:12, marginTop:4, fontWeight:500, color: form.confirm === form.password ? '#16a34a' : '#ef4444' }}>
+                    <p style={{ fontSize:11, marginTop:3, fontWeight:500, color: form.confirm === form.password ? '#16a34a' : '#ef4444' }}>
                       {form.confirm === form.password ? '✅ Passwords match' : '❌ Passwords do not match'}
                     </p>
                   )}
-                  {errors.confirm && <p style={{ color:'#ef4444', fontSize:12, marginTop:4, fontWeight:500 }}>⚠ {errors.confirm}</p>}
+                  {errors.confirm && <p style={{ color:'#ef4444', fontSize:11, marginTop:3, fontWeight:500 }}>⚠ {errors.confirm}</p>}
                 </div>
 
                 {/* Submit button */}
                 <button
                   type="submit"
                   disabled={sendingOTP}
-                  className="w-full py-3 px-4 rounded-xl bg-[#1e3825] hover:bg-[#142619] text-white font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#1e3825] hover:bg-[#142619] text-white font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 mt-1 disabled:opacity-50"
                 >
                   {sendingOTP ? 'Sending OTP…' : (
                     <>
@@ -342,12 +374,12 @@ const Register = () => {
                 </button>
 
                 {/* OR CONTINUE WITH Divider */}
-                <div className="relative my-6">
+                <div className="relative my-4">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-ink-200 dark:border-zinc-800"></div>
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-zinc-50 dark:bg-zinc-950 px-3 text-[10px] font-bold text-ink-405 dark:text-zinc-500 tracking-wider">
+                    <span className="bg-white dark:bg-zinc-900 px-3 text-[10px] font-bold text-ink-405 dark:text-zinc-500 tracking-wider">
                       OR CONTINUE WITH
                     </span>
                   </div>
@@ -356,8 +388,8 @@ const Register = () => {
                 {/* Google Button */}
                 <button
                   type="button"
-                  onClick={() => toast('Google Sign-In is not configured for local development.', { icon: 'ℹ️' })}
-                  className="w-full py-3 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-ink-200 dark:border-zinc-800 text-ink-700 dark:text-zinc-300 font-semibold text-sm hover:bg-ink-50 dark:hover:bg-zinc-800 transition-colors duration-150 flex items-center justify-center gap-2"
+                  onClick={handleGoogleLogin}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-ink-200 dark:border-zinc-800 text-ink-700 dark:text-zinc-300 font-semibold text-sm hover:bg-ink-50 dark:hover:bg-zinc-800 transition-colors duration-150 flex items-center justify-center gap-2"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69a5.74 5.74 0 0 1-2.48 3.77v3.13h3.99c2.33-2.14 3.54-5.3 3.54-8.75z" />
@@ -369,7 +401,7 @@ const Register = () => {
                 </button>
 
                 {/* Footer link */}
-                <p className="text-center text-sm text-ink-500 dark:text-zinc-400 mt-6">
+                <p className="text-center text-xs text-ink-500 dark:text-zinc-400 mt-4">
                   Already have an account?{' '}
                   <Link to="/login" className="text-sage font-bold hover:underline transition-colors">
                     Sign In
@@ -379,25 +411,25 @@ const Register = () => {
             </>
           ) : (
             <>
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-ink-900 dark:text-zinc-100">Verify Your Email</h2>
-                <p className="text-sm text-ink-405 dark:text-zinc-400 mt-1 leading-relaxed">
+              <div className="text-center mb-3">
+                <h2 className="text-lg font-bold text-ink-900 dark:text-zinc-100">Verify Your Email</h2>
+                <p className="text-xs text-ink-405 dark:text-zinc-400 mt-0.5 leading-relaxed">
                   We sent a 6-digit OTP to{' '}
                   <strong className="text-ink-700 dark:text-zinc-300">{form.email}</strong>.
                   {' '}<span className="text-amber-500 font-medium">If not in inbox, check Spam folder.</span>
                 </p>
               </div>
 
-              <form onSubmit={handleVerifyAndRegister} className="space-y-4" noValidate>
+              <form onSubmit={handleVerifyAndRegister} className="space-y-3" noValidate>
                 <div>
-                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1.5 block">
+                  <label className="text-[10px] font-bold text-ink-500 dark:text-zinc-400 tracking-wider uppercase mb-1 block">
                     One-Time Password (OTP)
                   </label>
                   <input
                     type="text" maxLength="6" placeholder="000000"
                     value={otp}
                     onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError('') }}
-                    className="input-field font-mono text-center tracking-[10px] text-xl font-bold"
+                    className="input-field py-2.5 font-mono text-center tracking-[10px] text-xl font-bold"
                     style={{ border: otpError ? '1.5px solid #ef4444' : undefined }}
                     autoFocus
                   />
@@ -415,7 +447,7 @@ const Register = () => {
                 <button
                   type="submit"
                   disabled={verifying}
-                  className="w-full py-3 px-4 rounded-xl bg-[#1e3825] hover:bg-[#142619] text-white font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#1e3825] hover:bg-[#142619] text-white font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {verifying ? 'Verifying…' : (
                     <>
@@ -441,17 +473,6 @@ const Register = () => {
               </div>
             </>
           )}
-        </div>
-
-        {/* Leafy botanical image at the bottom */}
-        <div className="w-full mt-auto flex justify-center z-10 pointer-events-none">
-          <div className="w-full max-w-[440px] h-[160px] overflow-hidden rounded-t-[32px] border-t border-x border-sage/10 shadow-lg relative bg-white dark:bg-zinc-950">
-            <img 
-              src="/leaves.png" 
-              alt="leaves decoration" 
-              className="w-full h-full object-cover grayscale brightness-95 opacity-80 contrast-125 hover:grayscale-0 transition-all duration-700 pointer-events-auto cursor-pointer" 
-            />
-          </div>
         </div>
 
       </div>
