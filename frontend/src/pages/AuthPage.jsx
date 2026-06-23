@@ -752,16 +752,47 @@ const RegisterForm = ({ onSwitch }) => {
 }
 
 /* ═══════════════════════════════════════
-   MAIN AUTH PAGE
+   HERO FEATURE ICONS (SVG)
 ═══════════════════════════════════════ */
 const FEATURES = [
-  { icon:'📊', text:'Track expenses by category' },
-  { icon:'💰', text:'Set monthly budgets & alerts' },
-  { icon:'📈', text:'Visualise spending trends' },
-  { icon:'🔄', text:'Recurring expenses auto-added' },
-  { icon:'📥', text:'Export to CSV & PDF' },
+  {
+    icon: (
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    ),
+    text: 'Track expenses by category',
+  },
+  {
+    icon: (
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+      </svg>
+    ),
+    text: 'Set monthly budgets & alerts',
+  },
+  {
+    icon: (
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+    ),
+    text: 'Visualise spending trends',
+  },
+  {
+    icon: (
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    ),
+    text: 'Export to CSV & PDF reports',
+  },
 ]
 
+
+/* ═══════════════════════════════════════
+   MAIN AUTH PAGE
+═══════════════════════════════════════ */
 const AuthPage = ({ mode = 'login' }) => {
   const [view, setView] = useState(mode)
   const { user, initializing } = useAuth()
@@ -796,37 +827,79 @@ const AuthPage = ({ mode = 'login' }) => {
       <div
         className="hidden lg:flex"
         style={{
-          width:'44%', flexShrink:0, position:'sticky', top:0, height:'100vh',
-          background:'linear-gradient(145deg,#1a2e22 0%,#2d5a3d 55%,#4a7c59 100%)',
-          flexDirection:'column', alignItems:'flex-start', justifyContent:'center',
-          padding:'48px 52px', color:'#fff', overflow:'hidden',
+          width: '46%', flexShrink: 0, position: 'sticky', top: 0, height: '100vh',
+          background: 'linear-gradient(160deg, #0d1f14 0%, #1a3d26 40%, #2d5a3d 75%, #3a6b4a 100%)',
+          flexDirection: 'column', justifyContent: 'center',
+          padding: '48px 48px', color: '#fff', overflow: 'hidden',
         }}>
-        {/* Logo */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:44 }}>
-          <img src="/favicon.png" alt="logo"
-            style={{ width:44, height:44, borderRadius:12, objectFit:'cover' }}
-            onError={e => { e.target.style.display='none' }} />
-          <span style={{ fontSize:24, fontWeight:800, letterSpacing:'-0.5px' }}>Spendwise</span>
+
+        {/* Decorative blurred orbs */}
+        <div style={{ position:'absolute', top:-80, right:-80, width:300, height:300,
+          borderRadius:'50%', background:'radial-gradient(circle, rgba(74,124,89,0.35) 0%, transparent 70%)',
+          pointerEvents:'none', filter:'blur(1px)' }} />
+        <div style={{ position:'absolute', bottom:-60, left:-60, width:240, height:240,
+          borderRadius:'50%', background:'radial-gradient(circle, rgba(45,90,61,0.4) 0%, transparent 70%)',
+          pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top:'45%', right:'5%', width:120, height:120,
+          borderRadius:'50%', background:'radial-gradient(circle, rgba(134,239,172,0.08) 0%, transparent 70%)',
+          pointerEvents:'none' }} />
+
+        {/* Subtle grid overlay */}
+        <div style={{
+          position:'absolute', inset:0, pointerEvents:'none', opacity:0.04,
+          backgroundImage:'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
+          backgroundSize:'40px 40px',
+        }} />
+
+        {/* Content */}
+        <div style={{ position:'relative', zIndex:1, display:'flex', flexDirection:'column' }}>
+          {/* Brand */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:36 }}>
+            <div style={{
+              width:38, height:38, borderRadius:11,
+              background:'linear-gradient(135deg,#4a7c59,#2d5a3d)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              boxShadow:'0 4px 12px rgba(74,124,89,0.4)',
+              flexShrink:0,
+            }}>
+              <svg width="20" height="20" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <span style={{ fontSize:20, fontWeight:800, letterSpacing:'-0.4px', color:'#fff' }}>Spendwise</span>
+          </div>
+
+          {/* Headline */}
+          <h1 style={{ fontSize:30, fontWeight:800, lineHeight:1.25, marginBottom:10, color:'#fff' }}>
+            Smart money tracking<br/>
+            <span style={{ color:'#86efac' }}>for every rupee.</span>
+          </h1>
+          <p style={{ fontSize:13.5, color:'rgba(255,255,255,0.55)', marginBottom:28, maxWidth:300, lineHeight:1.7 }}>
+            Budgets, insights, and reports — all in one beautiful dashboard.
+          </p>
+
+          {/* Feature pills */}
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {FEATURES.map(f => (
+              <div key={f.text} style={{
+                display:'flex', alignItems:'center', gap:10,
+              }}>
+                <div style={{
+                  width:28, height:28, borderRadius:8, flexShrink:0,
+                  background:'rgba(255,255,255,0.08)',
+                  border:'1px solid rgba(255,255,255,0.12)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  color:'#86efac',
+                }}>
+                  {f.icon}
+                </div>
+                <span style={{ fontSize:13, color:'rgba(255,255,255,0.7)', fontWeight:500 }}>{f.text}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <h1 style={{ fontSize:34, fontWeight:800, lineHeight:1.2, marginBottom:14 }}>
-          Take control of<br/>your finances.
-        </h1>
-        <p style={{ fontSize:15, color:'#c8dcd0', marginBottom:36, maxWidth:320, lineHeight:1.65 }}>
-          Track every rupee, set smart budgets, and understand your spending — all in one place.
-        </p>
-        <ul style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:13 }}>
-          {FEATURES.map(f => (
-            <li key={f.text} style={{ display:'flex', alignItems:'center', gap:11, fontSize:14, color:'#e8f0eb' }}>
-              <span style={{ fontSize:18 }}>{f.icon}</span>{f.text}
-            </li>
-          ))}
-        </ul>
-        {/* Decorative circles */}
-        <div style={{ position:'absolute', bottom:-60, right:-60, width:260, height:260,
-          borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', top:-40, right:60, width:150, height:150,
-          borderRadius:'50%', background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
       </div>
+
 
       {/* ── RIGHT FORM — only this part animates ── */}
       <div style={{

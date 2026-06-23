@@ -50,7 +50,7 @@ const ExpensesPage = () => {
 
   const validateCustomDates = useCallback((startDate, endDate) => {
     if (filterTab !== 'custom') return ''
-    if (!startDate || !endDate) return 'Both start date and end date are required.'
+    if (!startDate || !endDate) return ''
     if (startDate > endDate) return 'Start date cannot be later than end date.'
     return ''
   }, [filterTab])
