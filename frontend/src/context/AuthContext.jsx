@@ -1,15 +1,36 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe } from '../api/client'
 import api from '../api/client'
 import hashPassword from '../utils/hashPassword'
 
 const AuthContext = createContext(null)
 
+// ── localStorage cache key for user profile ──
+const USER_CACHE_KEY = 'sw_user_cache'
+
+const readCache = () => {
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+const writeCache = (user) => {
+  try {
+    if (user) localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user))
+    else localStorage.removeItem(USER_CACHE_KEY)
+  } catch { /* quota exceeded — ignore */ }
+}
+
 export const AuthProvider = ({ children }) => {
-  // Profile lives in memory only — jwt + user_id are HttpOnly cookies set by the server
-  const [user, setUser] = useState(null)
-  const [initializing, setInitializing] = useState(true)
-  const [loading, setLoading] = useState(false)
+  // Seed user synchronously from cache so the layout renders on first paint
+  const cached = useRef(readCache())
+  const [user, setUser]               = useState(cached.current)
+  // initializing = true only when there is NO cached user (first visit / after logout)
+  const [initializing, setInitializing] = useState(!cached.current)
+  // sessionValidated = true once getMe() has confirmed the cookie is still valid
+  const [sessionValidated, setSessionValidated] = useState(false)
+  const [loading, setLoading]         = useState(false)
 
   const normalizeUser = (data) => ({
     _id:      data._id,
@@ -19,27 +40,37 @@ export const AuthProvider = ({ children }) => {
     currency: data.currency || 'INR',
   })
 
-  // Restore session from cookie on refresh — fetch profile from API
+  // On mount: validate the HttpOnly cookie session in the background.
+  // If cached user exists, the layout is already showing — we just confirm/refresh.
   useEffect(() => {
-    // Remove legacy auth keys from localStorage
+    // Remove old unrelated keys
     localStorage.removeItem('user')
     localStorage.removeItem('token')
 
     getMe()
-      .then(({ data }) => setUser(normalizeUser(data)))
+      .then(({ data }) => {
+        const fresh = normalizeUser(data)
+        setUser(fresh)
+        writeCache(fresh)
+      })
       .catch((err) => {
-        // 401 on /auth/me just means no active session — not a real error
         if (err?.response?.status !== 401) {
           console.error('Session restore failed:', err?.message)
         }
+        // Cookie is gone / invalid — clear cache and force login
+        writeCache(null)
         setUser(null)
       })
-      .finally(() => setInitializing(false))
+      .finally(() => {
+        setInitializing(false)
+        setSessionValidated(true)
+      })
   }, [])
 
   const syncUser = (data) => {
     const u = normalizeUser(data)
     setUser(u)
+    writeCache(u)
     return u
   }
 
@@ -48,7 +79,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const hashedPassword = await hashPassword(password)
       const { data } = await apiLogin({ email, password: hashedPassword })
-      syncUser(data)
+      const u = syncUser(data)
+      setSessionValidated(true)
       return { success: true }
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Login failed' }
@@ -86,14 +118,18 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = async () => {
-    try {
-      await apiLogout()
-    } catch (_) {}
+    try { await apiLogout() } catch (_) {}
+    writeCache(null)
     setUser(null)
+    setSessionValidated(false)
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, initializing, updateUser, uploadAvatar }}>
+    <AuthContext.Provider value={{
+      user, login, register, logout,
+      loading, initializing, sessionValidated,
+      updateUser, uploadAvatar,
+    }}>
       {children}
     </AuthContext.Provider>
   )

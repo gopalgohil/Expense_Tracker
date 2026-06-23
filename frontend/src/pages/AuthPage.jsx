@@ -14,7 +14,7 @@ import {
 } from '../api/client'
 import hashPassword from '../utils/hashPassword'
 
-/* ── Eye icon ── */
+
 const Eye = ({ on }) => on ? (
   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"
     strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -784,7 +784,8 @@ const AuthPage = ({ mode = 'login' }) => {
     }
   }, [initializing, user, navigate])
 
-  if (initializing || user) return null
+  // Cached user exists → redirect immediately (effect fires on next tick)
+  if (user) return null
 
   const isForgot = view === 'forgot'
 

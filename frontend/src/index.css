@@ -136,3 +136,19 @@ input, textarea, select, button svg {
 .dark ::-webkit-scrollbar { width: 6px; }
 .dark ::-webkit-scrollbar-track { background: #0f1117; }
 .dark ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+
+/* ── animate-fade-in ── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.18s ease-out both;
+}
+
+/* ── Slim top loading bar (ProtectedRoute — no cache case) ── */
+@keyframes topbar-slide {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
