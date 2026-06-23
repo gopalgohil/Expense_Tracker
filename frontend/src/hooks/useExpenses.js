@@ -53,10 +53,14 @@ export const useExpenses = () => {
       setPagination((p) => ({ ...p, total: p.total + 1 }))
       return { success: true, data }
     } catch (err) {
+      const d = err.response?.data || {}
       return {
-        success: false,
-        message: err.response?.data?.message || 'Failed to add expense',
-        exceedsBudget: err.response?.data?.exceedsBudget,
+        success:      false,
+        message:      d.message      || 'Failed to add expense',
+        exceedsBudget:d.exceedsBudget|| false,
+        budgetLimit:  d.budgetLimit  ?? null,
+        currentSpent: d.currentSpent ?? null,
+        category:     d.category     || null,
       }
     }
   }

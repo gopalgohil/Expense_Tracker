@@ -23,20 +23,44 @@ const currentMonth = () => {
 
 const DEFAULT_ADVANCED = { minAmount: '', maxAmount: '', sortBy: 'date_desc' }
 
+// ── localStorage persistence helpers ──
+const LS_KEY = 'sw_expense_filters'
+
+const loadSavedFilters = () => {
+  try {
+    const raw = localStorage.getItem(LS_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch { return null }
+}
+
+const saveFilters = (tab, filters) => {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ tab, filters }))
+  } catch { /* quota exceeded */ }
+}
+
 const ExpensesPage = () => {
   const {
     expenses, pagination, loading, error,
     fetchExpenses, addExpense, editExpense, removeExpense, restoreExpense,
   } = useExpenses()
 
-  const [filterTab, setFilterTab] = useState('monthly') // 'monthly' | 'yearly' | 'custom' | 'all'
-  const [filters, setFilters] = useState({
-    month: currentMonth(),
-    year: new Date().getFullYear().toString(),
-    startDate: '',
-    endDate: '',
-    category: ''
-  })
+  // Restore from localStorage or fall back to defaults
+  const _saved = loadSavedFilters()
+
+  const [filterTab, setFilterTab] = useState(
+    _saved?.tab ?? 'monthly'
+  )
+  const [filters, setFilters] = useState(
+    _saved?.filters ?? {
+      month: currentMonth(),
+      year: new Date().getFullYear().toString(),
+      startDate: '',
+      endDate: '',
+      category: ''
+    }
+  )
   const [dateError,  setDateError]  = useState('')
   const [search,     setSearch]     = useState('')
   const [advanced,   setAdvanced]   = useState(DEFAULT_ADVANCED)
@@ -86,20 +110,30 @@ const ExpensesPage = () => {
     fetchExpenses(buildParams())
   }, [filterTab, filters, search, advanced, page, pageSize, fetchExpenses, buildParams, validateCustomDates])
 
+  // Persist active tab + filter values so they survive page refresh
+  useEffect(() => {
+    saveFilters(filterTab, filters)
+  }, [filterTab, filters])
+
+
   const handleResetAll = () => {
-    setFilters({
+    const defaultFilters = {
       month: currentMonth(),
       year: new Date().getFullYear().toString(),
       startDate: '',
       endDate: '',
       category: ''
-    })
+    }
+    setFilters(defaultFilters)
     setDateError('')
     setSearch('')
     setAdvanced(DEFAULT_ADVANCED)
     setPageSize(5)
     setPage(1)
+    try { localStorage.removeItem(LS_KEY) } catch { /* ignore */ }
   }
+
+
 
   const handleEditClick = (expense) => {
     setEditingExpense(expense)
