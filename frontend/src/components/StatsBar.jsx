@@ -36,7 +36,7 @@ const StatsBar = ({ expenses }) => {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex flex-wrap gap-6 items-start">
+      <div className="grid grid-cols-2 md:flex md:flex-wrap gap-6 items-start">
 
         <StatCard label="Total spent" delay={0}>
           <p className="text-2xl font-semibold font-mono text-ink-800">

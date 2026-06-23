@@ -59,7 +59,7 @@ const Sidebar = ({ active, setActive, onAddExpenseClick, onClose }) => {
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border-r border-ink-100 dark:border-zinc-800 w-64">
       {/* Logo */}
-      <div className="h-16 flex items-center px-5 border-b border-ink-100 dark:border-zinc-800 flex-shrink-0">
+      <div className="h-16 flex items-center justify-between px-5 border-b border-ink-100 dark:border-zinc-800 flex-shrink-0">
         <button
           onClick={() => handleNav('dashboard')}
           className="flex items-center gap-2.5 hover:opacity-80 transition-opacity text-left focus:outline-none"
@@ -71,6 +71,16 @@ const Sidebar = ({ active, setActive, onAddExpenseClick, onClose }) => {
           />
           <span className="font-bold text-ink-800 dark:text-zinc-200 text-lg tracking-tight">Spendwise</span>
         </button>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-lg text-ink-400 hover:bg-ink-50 dark:hover:bg-zinc-800 hover:text-ink-650 dark:hover:text-zinc-205 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Nav items */}

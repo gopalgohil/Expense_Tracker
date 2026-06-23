@@ -4,7 +4,8 @@ import { AuthProvider }  from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import ProtectedRoute    from './components/ProtectedRoute'
 import Layout            from './components/Layout'
-import AuthPage          from './pages/AuthPage'
+import Login            from './pages/Login'
+import Register         from './pages/Register'
 import Dashboard         from './pages/Dashboard'
 import BudgetsPage       from './pages/BudgetsPage'
 import ExpensesPage      from './pages/ExpensesPage'
@@ -31,8 +32,8 @@ function App() {
         />
         <BrowserRouter>
           <Routes>
-            <Route path="/login"    element={<AuthPage mode="login"    />} />
-            <Route path="/register" element={<AuthPage mode="register" />} />
+            <Route path="/login"    element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
             {/* Authenticated shell — sidebar + header wrap all protected pages */}
             <Route element={<ProtectedRoute />}>

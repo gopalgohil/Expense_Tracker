@@ -167,13 +167,13 @@ const BudgetPanel = ({ month, onMonthChange }) => {
           )}
         </div>
 
-        <form onSubmit={handleSave} className="flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[150px]">
+        <form onSubmit={handleSave} className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="w-full sm:flex-1 sm:min-w-[150px]">
             <label className="label">Category</label>
             <select
               value={form.category}
               onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-              className="input-field bg-white"
+              className="input-field bg-white w-full"
               disabled={isEditing}   // can't change category when editing
               required
             >
@@ -185,7 +185,7 @@ const BudgetPanel = ({ month, onMonthChange }) => {
             )}
           </div>
 
-          <div className="flex-1 min-w-[130px]">
+          <div className="w-full sm:flex-1 sm:min-w-[130px]">
             <label className="label">Monthly limit (₹)</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 font-mono text-sm">₹</span>
@@ -193,19 +193,19 @@ const BudgetPanel = ({ month, onMonthChange }) => {
                 type="number" min="1" step="1" placeholder="0"
                 value={form.limit}
                 onChange={(e) => setForm((p) => ({ ...p, limit: e.target.value }))}
-                className="input-field pl-8 font-mono"
+                className="input-field pl-8 font-mono w-full"
                 required
               />
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex w-full sm:w-auto gap-2">
             <button type="submit" disabled={saving || isPastMonth}
-              className={`btn-primary whitespace-nowrap ${isEditing ? 'bg-sage-dark' : ''}`}>
+              className={`flex-1 sm:flex-none btn-primary whitespace-nowrap ${isEditing ? 'bg-sage-dark' : ''}`}>
               {saving ? 'Saving…' : isEditing ? 'Update Budget' : 'Save Budget'}
             </button>
             {isEditing && (
-              <button type="button" onClick={handleCancel} className="btn-ghost">
+              <button type="button" onClick={handleCancel} className="btn-ghost flex-1 sm:flex-none">
                 Cancel
               </button>
             )}

@@ -33,10 +33,10 @@ const SearchFilterBar = ({ search, onSearchChange, advanced, onAdvancedChange, o
       </div>
 
       {/* Advanced filters row */}
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3">
 
         {/* Min amount */}
-        <div className="flex-1 min-w-[110px] space-y-1.5">
+        <div className="space-y-1.5 col-span-1 md:flex-1 md:min-w-[110px]">
           <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 dark:text-zinc-500 block">
             Min (₹)
           </label>
@@ -46,13 +46,13 @@ const SearchFilterBar = ({ search, onSearchChange, advanced, onAdvancedChange, o
               type="number" min="0" placeholder="0"
               value={advanced.minAmount}
               onChange={(e) => onAdvancedChange({ minAmount: e.target.value })}
-              className="input-field pl-7 font-mono !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 hover:!border-gray-400 focus:!border-sage focus:!ring-2 focus:!ring-sage/20 transition-colors"
+              className="input-field pl-7 font-mono !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 hover:!border-gray-400 focus:!border-sage focus:!ring-2 focus:!ring-sage/20 transition-colors w-full"
             />
           </div>
         </div>
 
         {/* Max amount */}
-        <div className="flex-1 min-w-[110px] space-y-1.5">
+        <div className="space-y-1.5 col-span-1 md:flex-1 md:min-w-[110px]">
           <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 dark:text-zinc-500 block">
             Max (₹)
           </label>
@@ -62,20 +62,20 @@ const SearchFilterBar = ({ search, onSearchChange, advanced, onAdvancedChange, o
               type="number" min="0" placeholder="∞"
               value={advanced.maxAmount}
               onChange={(e) => onAdvancedChange({ maxAmount: e.target.value })}
-              className="input-field pl-7 font-mono !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 hover:!border-gray-400 focus:!border-sage focus:!ring-2 focus:!ring-sage/20 transition-colors"
+              className="input-field pl-7 font-mono !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 hover:!border-gray-400 focus:!border-sage focus:!ring-2 focus:!ring-sage/20 transition-colors w-full"
             />
           </div>
         </div>
 
         {/* Sort */}
-        <div className="flex-1 min-w-[160px] space-y-1.5">
+        <div className="space-y-1.5 col-span-2 md:flex-1 md:min-w-[160px]">
           <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 dark:text-zinc-500 block">
             Sort by
           </label>
           <select
             value={advanced.sortBy}
             onChange={(e) => onAdvancedChange({ sortBy: e.target.value })}
-            className="input-field !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 hover:!border-gray-400 focus:!border-sage focus:!ring-2 focus:!ring-sage/20 transition-colors"
+            className="input-field !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 hover:!border-gray-400 focus:!border-sage focus:!ring-2 focus:!ring-sage/20 transition-colors w-full"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -84,10 +84,10 @@ const SearchFilterBar = ({ search, onSearchChange, advanced, onAdvancedChange, o
         </div>
 
         {/* Reset */}
-        <div className="flex items-end">
+        <div className="col-span-2 md:flex md:items-end md:shrink-0">
           <button
             onClick={onReset}
-            className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 border border-gray-300 dark:border-zinc-600 transition-all duration-150"
+            className="w-full md:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-700/50 hover:bg-gray-200 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 border border-gray-300 dark:border-zinc-600 transition-all duration-150"
           >
             Reset
           </button>
