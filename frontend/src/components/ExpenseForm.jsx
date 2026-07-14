@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react'
 import { upsertBudget } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
 const CATEGORIES = [
   'Food & Dining', 'Transport', 'Shopping', 'Entertainment',
   'Health', 'Utilities', 'Housing', 'Education', 'Travel', 'Other',
+]
+
+const CURRENCIES = [
+  'INR','USD','EUR','GBP','JPY','CAD','AUD','SGD','CHF','NZD',
+  'HKD','CNY','MXN','BRL','ZAR','SEK','NOK','DKK','THB','MYR',
 ]
 
 const INTERVALS = [
@@ -268,9 +274,12 @@ const UpdateBudgetModal = ({ payload, budgetInfo, newAmount, onAmountChange, onB
    MAIN EXPENSE FORM
 ══════════════════════════════════════════════ */
 const ExpenseForm = ({ onSubmit, onCancel, initialData = null, loading = false }) => {
+  const { user } = useAuth()
+  const baseCur = user?.currency || 'INR'
   const [form, setForm] = useState({
     amount: '', category: '', date: today(), description: '',
     isRecurring: false, recurrenceInterval: 'monthly',
+    currency: baseCur,
   })
   const [error, setError] = useState('')
   const [modalError, setModalError] = useState('')
@@ -293,6 +302,7 @@ const ExpenseForm = ({ onSubmit, onCancel, initialData = null, loading = false }
         description:        initialData.description || '',
         isRecurring:        initialData.isRecurring || false,
         recurrenceInterval: initialData.recurrenceInterval || 'monthly',
+        currency:           initialData.currency || baseCur,
       })
     }
   }, [initialData])
@@ -330,6 +340,7 @@ const ExpenseForm = ({ onSubmit, onCancel, initialData = null, loading = false }
       description:        form.description,
       isRecurring:        form.isRecurring,
       recurrenceInterval: form.isRecurring ? form.recurrenceInterval : null,
+      currency:           form.currency || baseCur,
     }
 
     setError('')
@@ -433,15 +444,25 @@ const ExpenseForm = ({ onSubmit, onCancel, initialData = null, loading = false }
           <div className="bg-coral-soft text-coral text-sm px-4 py-2.5 rounded-xl">{error}</div>
         )}
 
-        {/* Amount */}
+        {/* Amount + Currency */}
         <div>
-          <label className="label">Amount (₹) *</label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 font-mono text-sm">₹</span>
+          <label className="label">Amount *</label>
+          <div className="flex gap-2">
+            <select
+              name="currency"
+              value={form.currency}
+              onChange={handleChange}
+              className="input-field w-24 font-mono text-sm bg-white dark:bg-zinc-800 text-ink-800 dark:text-zinc-100 flex-shrink-0"
+            >
+              {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
             <input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00"
               value={form.amount} onChange={handleChange}
-              className="input-field pl-8 font-mono bg-white dark:bg-zinc-800 text-ink-800 dark:text-zinc-100" required />
+              className="input-field flex-1 font-mono bg-white dark:bg-zinc-800 text-ink-800 dark:text-zinc-100" required />
           </div>
+          {form.currency !== baseCur && (
+            <p className="text-xs text-ink-400 mt-1">Will be converted to {baseCur} for totals & budgets.</p>
+          )}
         </div>
 
         {/* Category */}

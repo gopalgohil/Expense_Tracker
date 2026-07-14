@@ -7,6 +7,29 @@ import ScaleModal from '../components/animations/ScaleModal'
 import { HoverButton } from '../components/animations/HoverButton'
 import hashPassword from '../utils/hashPassword'
 
+const CURRENCIES = [
+  { code: 'INR', label: '🇮🇳 INR — Indian Rupee' },
+  { code: 'USD', label: '🇺🇸 USD — US Dollar' },
+  { code: 'EUR', label: '🇪🇺 EUR — Euro' },
+  { code: 'GBP', label: '🇬🇧 GBP — British Pound' },
+  { code: 'JPY', label: '🇯🇵 JPY — Japanese Yen' },
+  { code: 'CAD', label: '🇨🇦 CAD — Canadian Dollar' },
+  { code: 'AUD', label: '🇦🇺 AUD — Australian Dollar' },
+  { code: 'SGD', label: '🇸🇬 SGD — Singapore Dollar' },
+  { code: 'CHF', label: '🇨🇭 CHF — Swiss Franc' },
+  { code: 'NZD', label: '🇳🇿 NZD — New Zealand Dollar' },
+  { code: 'HKD', label: '🇭🇰 HKD — Hong Kong Dollar' },
+  { code: 'CNY', label: '🇨🇳 CNY — Chinese Yuan' },
+  { code: 'MXN', label: '🇲🇽 MXN — Mexican Peso' },
+  { code: 'BRL', label: '🇧🇷 BRL — Brazilian Real' },
+  { code: 'ZAR', label: '🇿🇦 ZAR — South African Rand' },
+  { code: 'SEK', label: '🇸🇪 SEK — Swedish Krona' },
+  { code: 'NOK', label: '🇳🇴 NOK — Norwegian Krone' },
+  { code: 'DKK', label: '🇩🇰 DKK — Danish Krone' },
+  { code: 'THB', label: '🇹🇭 THB — Thai Baht' },
+  { code: 'MYR', label: '🇲🇾 MYR — Malaysian Ringgit' },
+]
+
 // ── Reusable components defined OUTSIDE Settings ──────────────
 // (if defined inside, React recreates them on every render → input loses focus)
 
@@ -91,7 +114,7 @@ const Settings = () => {
   const navigate = useNavigate()
 
   // Profile state
-  const [profile,       setProfile]       = useState({ name: user?.name || '', email: user?.email || '' })
+  const [profile,       setProfile]       = useState({ name: user?.name || '', email: user?.email || '', currency: user?.currency || 'INR' })
   const [profileErr,    setProfileErr]    = useState({})
   const [profileSaving, setProfileSaving] = useState(false)
 
@@ -203,6 +226,23 @@ const Settings = () => {
             onChange={handleProfileChange} placeholder="you@example.com"
             error={profileErr.email}
           />
+
+          {/* Currency selector */}
+          <div>
+            <label className="label">Base Currency</label>
+            <select
+              name="currency"
+              value={profile.currency}
+              onChange={handleProfileChange}
+              className="input-field bg-white dark:bg-zinc-800 text-ink-800 dark:text-zinc-100"
+            >
+              {CURRENCIES.map(({ code, label }) => (
+                <option key={code} value={code}>{label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-ink-400 mt-1">All dashboard totals and charts will be shown in this currency.</p>
+          </div>
+
           <button type="submit" disabled={profileSaving} className="btn-primary">
             {profileSaving ? 'Saving…' : 'Save Changes'}
           </button>
