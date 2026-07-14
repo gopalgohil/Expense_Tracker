@@ -5,9 +5,20 @@ import {
 
 import AnimatedChart from './animations/AnimatedChart'
 import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../context/AuthContext'
 
-const Tip = ({ active, payload }) => {
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
+
+const Tip = ({ active, payload, symbol }) => {
   if (!active || !payload?.length) return null
+  const locale = symbol === '₹' ? 'en-IN' : 'en-US'
   return (
     <div className="bg-white dark:bg-zinc-800 border border-ink-100 dark:border-zinc-700 rounded-xl shadow-lift px-3 py-2 text-xs space-y-1">
       {payload.map((p) => (
@@ -15,7 +26,7 @@ const Tip = ({ active, payload }) => {
           <span className="w-2 h-2 rounded-full" style={{ background: p.fill }} />
           <span className="text-ink-600 dark:text-zinc-400">{p.name}:</span>
           <span className="font-mono font-semibold text-ink-800 dark:text-zinc-200">
-            ₹{Number(p.value).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+            {symbol}{Number(p.value).toLocaleString(locale, { minimumFractionDigits: 0 })}
           </span>
         </div>
       ))}
@@ -34,7 +45,11 @@ const fmtMonth = (ym) => {
 
 const MonthCompareChart = ({ summary, chartKey = 'compare' }) => {
   const { dark } = useTheme()
+  const { user } = useAuth()
   if (!summary) return null
+
+  const baseCurrency = user?.currency || 'INR'
+  const symbol = CURRENCY_SYMBOLS[baseCurrency] || baseCurrency || '₹'
 
   const { currentMonth, previousMonth, currentTotal, previousTotal, changePercent } = summary
 
@@ -75,10 +90,10 @@ const MonthCompareChart = ({ summary, chartKey = 'compare' }) => {
             <YAxis
               tick={{ fontSize: 10, fill: tickColor }}
               axisLine={false} tickLine={false}
-              tickFormatter={(v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`}
+              tickFormatter={(v) => v >= 1000 ? `${symbol}${(v / 1000).toFixed(0)}k` : `${symbol}${v}`}
               width={44}
             />
-            <Tooltip content={<Tip />} cursor={{ fill: cursorColor }} />
+            <Tooltip content={<Tip symbol={symbol} />} cursor={{ fill: cursorColor }} />
             <Legend
               formatter={(v) => <span className="text-xs text-ink-600 dark:text-zinc-400">{v}</span>}
               iconType="circle" iconSize={8}

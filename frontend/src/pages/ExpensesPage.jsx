@@ -21,6 +21,21 @@ const currentMonth = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
+
+const formatCurrency = (amount, currency) => {
+  const symbol = CURRENCY_SYMBOLS[currency] || currency || '₹';
+  const locale = currency === 'INR' ? 'en-IN' : 'en-US';
+  return `${symbol}${Number(amount).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 const DEFAULT_ADVANCED = { minAmount: '', maxAmount: '', sortBy: 'date_desc' }
 
 // ── localStorage persistence helpers ──
@@ -452,7 +467,9 @@ const ExpensesPage = () => {
       >
         <div className="p-6 text-center">
           <h3 className="text-lg font-bold text-ink-800 dark:text-zinc-200 mb-2">Delete Expense?</h3>
-          <p className="text-sm text-ink-400 mb-6">This action cannot be undone.</p>
+          <p className="text-sm text-ink-400 dark:text-zinc-500 mb-6 leading-relaxed">
+            Are you sure you want to delete the expense of <span className="font-semibold text-ink-700 dark:text-zinc-350">{formatCurrency(expenseToDelete?.amount || 0, expenseToDelete?.currency || 'INR')}</span> for "{expenseToDelete?.category}"? This action cannot be undone.
+          </p>
           <div className="flex flex-col gap-2">
             <HoverButton onClick={confirmDelete} className="w-full py-2.5 rounded-xl bg-coral text-white font-semibold text-sm">
               Delete

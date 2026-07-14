@@ -3,6 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
 import { useBudgets } from '../hooks/useBudgets'
+import { useAuth } from '../context/AuthContext'
+
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
 
 const CATEGORIES = [
   'Food & Dining', 'Transport', 'Shopping', 'Entertainment',
@@ -15,11 +25,16 @@ const currentMonth = () => {
 }
 
 const BudgetSettings = () => {
+  const { user } = useAuth()
   const navigate                                        = useNavigate()
   const { budgets, status, loading, fetchBudgets, saveBudget, removeBudget } = useBudgets()
   const [month,   setMonth]   = useState(currentMonth())
   const [form,    setForm]    = useState({ category: '', limit: '' })
   const [saving,  setSaving]  = useState(false)
+
+  const baseCurrency = user?.currency || 'INR'
+  const symbol = CURRENCY_SYMBOLS[baseCurrency] || baseCurrency || '₹'
+  const locale = baseCurrency === 'INR' ? 'en-IN' : 'en-US'
 
   useEffect(() => { fetchBudgets(month) }, [month])
 
@@ -99,9 +114,9 @@ const BudgetSettings = () => {
               </select>
             </div>
             <div className="flex-1 min-w-[130px]">
-              <label className="label">Monthly limit (₹)</label>
+              <label className="label">Monthly limit ({symbol})</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 font-mono text-sm">₹</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 font-mono text-sm">{symbol}</span>
                 <input
                   type="number" min="1" step="1" placeholder="0"
                   value={form.limit}
@@ -137,7 +152,7 @@ const BudgetSettings = () => {
                   <span className="text-sm font-medium text-ink-700">{b.category}</span>
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-sm text-ink-800">
-                      ₹{b.limit.toLocaleString('en-IN')}
+                      {symbol}{b.limit.toLocaleString(locale)}
                     </span>
                     <button
                       onClick={() => handleDelete(b._id, b.category)}

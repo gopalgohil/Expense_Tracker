@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import ExpenseForm from './ExpenseForm'
 import { HoverIcon, HoverButton } from './animations/HoverButton'
 import ScaleModal from './animations/ScaleModal'
+import { useAuth } from '../context/AuthContext'
 
 const COLORS = {
   'Food & Dining': 'bg-amber-soft text-amber-strong',
@@ -27,7 +28,23 @@ const INTERVAL_LABEL = {
 const fmt = (dateStr) =>
   new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
+
+const formatCurrency = (amount, currency) => {
+  const symbol = CURRENCY_SYMBOLS[currency] || currency || '₹';
+  const locale = currency === 'INR' ? 'en-IN' : 'en-US';
+  return `${symbol}${Number(amount).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 const ExpenseCard = ({ expense, onEdit, onUpdate, onDelete, isNew = false }) => {
+  const { user } = useAuth()
   const [deleting,         setDeleting]         = useState(false)
   const [stopping,         setStopping]         = useState(false)
   const [showStopConfirm,  setShowStopConfirm]  = useState(false)
@@ -105,9 +122,30 @@ const ExpenseCard = ({ expense, onEdit, onUpdate, onDelete, isNew = false }) => 
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-3 border-t border-ink-100/50 dark:border-zinc-800/50 pt-2.5 sm:pt-0 sm:border-0 flex-shrink-0">
-          <span className="font-mono font-bold text-ink-800 dark:text-zinc-200 text-base">
-            ₹{Number(expense.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </span>
+          {(() => {
+            const originalCurrency = expense.currency || 'INR'
+            const baseCurrency = user?.currency || 'INR'
+            const hasDifferentCurrency = expense.currency && expense.currency !== baseCurrency && expense.amountInBaseCurrency !== null
+
+            if (hasDifferentCurrency) {
+              return (
+                <div className="flex flex-col items-end">
+                  <span className="font-mono font-bold text-ink-800 dark:text-zinc-200 text-base">
+                    {formatCurrency(expense.amount, originalCurrency)}
+                  </span>
+                  <span className="text-[10px] text-ink-400 dark:text-zinc-500 font-semibold mt-0.5 whitespace-nowrap">
+                    ≈ {formatCurrency(expense.amountInBaseCurrency, baseCurrency)}
+                  </span>
+                </div>
+              )
+            } else {
+              return (
+                <span className="font-mono font-bold text-ink-800 dark:text-zinc-200 text-base">
+                  {formatCurrency(expense.amount, originalCurrency)}
+                </span>
+              )
+            }
+          })()}
 
           <div className="flex items-center gap-1.5">
             {expense.isRecurring && (
@@ -167,8 +205,13 @@ const ExpenseCard = ({ expense, onEdit, onUpdate, onDelete, isNew = false }) => 
           </p>
           <p className="text-sm text-ink-400 dark:text-zinc-500 leading-relaxed mb-6">
             <span className="font-mono font-semibold text-ink-700 dark:text-zinc-300">
-              ₹{Number(expense.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              {formatCurrency(expense.amount, expense.currency || 'INR')}
             </span>
+            {expense.currency && user?.currency && expense.currency !== user.currency && expense.amountInBaseCurrency !== null && (
+              <span className="text-xs text-ink-400 dark:text-zinc-500 font-semibold ml-1">
+                (≈ {formatCurrency(expense.amountInBaseCurrency, user.currency)})
+              </span>
+            )}
             {' '}· {INTERVAL_LABEL[expense.recurrenceInterval] || 'Recurring'}
             <br />The existing expense will remain. No future entries will be created.
           </p>

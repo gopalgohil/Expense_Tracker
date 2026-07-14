@@ -4,16 +4,26 @@ import {
 } from 'recharts'
 
 import AnimatedChart from './animations/AnimatedChart'
-
 import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../context/AuthContext'
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
+
+const CustomTooltip = ({ active, payload, label, symbol }) => {
   if (!active || !payload?.length) return null
+  const locale = symbol === '₹' ? 'en-IN' : 'en-US'
   return (
     <div className="bg-white dark:bg-zinc-800 border border-ink-100 dark:border-zinc-700 rounded-xl shadow-lift px-3 py-2 text-xs">
       <p className="font-medium text-ink-700 dark:text-zinc-200">{label}</p>
       <p className="text-ink-500 dark:text-zinc-400 font-mono mt-0.5">
-        ₹{Number(payload[0].value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        {symbol}{Number(payload[0].value).toLocaleString(locale, { minimumFractionDigits: 2 })}
       </p>
     </div>
   )
@@ -25,7 +35,7 @@ const buildMonthlyData = (expenses) => {
   expenses.forEach((e) => {
     const d = new Date(e.date)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    map[key] = (map[key] || 0) + e.amount
+    map[key] = (map[key] || 0) + (e.amountInBaseCurrency ?? e.amount)
   })
 
   // Show all months that have data, sorted ascending
@@ -42,7 +52,11 @@ const buildMonthlyData = (expenses) => {
 
 const MonthlyBarChart = ({ expenses, chartKey = 'monthly' }) => {
   const { dark } = useTheme()
+  const { user } = useAuth()
   const data = buildMonthlyData(expenses)
+
+  const baseCurrency = user?.currency || 'INR'
+  const symbol = CURRENCY_SYMBOLS[baseCurrency] || baseCurrency || '₹'
 
   if (!data.length) return null
 
@@ -67,10 +81,10 @@ const MonthlyBarChart = ({ expenses, chartKey = 'monthly' }) => {
               tick={{ fontSize: 11, fill: tickColor }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+              tickFormatter={(v) => `${symbol}${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
               width={48}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: cursorColor }} />
+            <Tooltip content={<CustomTooltip symbol={symbol} />} cursor={{ fill: cursorColor }} />
             <Bar
               dataKey="total"
               radius={[6, 6, 0, 0]}

@@ -6,14 +6,25 @@ import {
 import AnimatedChart from './animations/AnimatedChart'
 
 import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../context/AuthContext'
 
-const Tip = ({ active, payload, label }) => {
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
+
+const Tip = ({ active, payload, label, symbol }) => {
   if (!active || !payload?.length) return null
+  const locale = symbol === '₹' ? 'en-IN' : 'en-US'
   return (
     <div className="bg-white dark:bg-zinc-800 border border-ink-100 dark:border-zinc-700 rounded-xl shadow-lift px-3 py-2 text-xs">
       <p className="font-medium text-ink-700 dark:text-zinc-200">Day {label}</p>
       <p className="text-ink-500 dark:text-zinc-400 font-mono mt-0.5">
-        ₹{Number(payload[0].value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        {symbol}{Number(payload[0].value).toLocaleString(locale, { minimumFractionDigits: 2 })}
       </p>
     </div>
   )
@@ -21,7 +32,11 @@ const Tip = ({ active, payload, label }) => {
 
 const DailyBarChart = ({ data, chartKey = 'daily' }) => {
   const { dark } = useTheme()
+  const { user } = useAuth()
   if (!data?.length) return null
+
+  const baseCurrency = user?.currency || 'INR'
+  const symbol = CURRENCY_SYMBOLS[baseCurrency] || baseCurrency || '₹'
 
   const max = Math.max(...data.map((d) => d.total))
   const gridColor = dark ? '#2d3148' : '#e8e6df'
@@ -45,10 +60,10 @@ const DailyBarChart = ({ data, chartKey = 'daily' }) => {
             <YAxis
               tick={{ fontSize: 10, fill: tickColor }}
               axisLine={false} tickLine={false}
-              tickFormatter={(v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`}
+              tickFormatter={(v) => v >= 1000 ? `${symbol}${(v / 1000).toFixed(0)}k` : `${symbol}${v}`}
               width={44}
             />
-            <Tooltip content={<Tip />} cursor={{ fill: cursorColor }} />
+            <Tooltip content={<Tip symbol={symbol} />} cursor={{ fill: cursorColor }} />
             <Bar
               dataKey="total"
               radius={[4, 4, 0, 0]}

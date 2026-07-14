@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import FadeInSection from './animations/FadeInSection'
+import { useAuth } from '../context/AuthContext'
 
 const bar = (percent) => {
   if (percent >= 90) return { bg: '#fee2e2', fill: '#ef4444', text: '#b91c1c' }
@@ -7,8 +8,22 @@ const bar = (percent) => {
   return               { bg: '#dcfce7', fill: '#22c55e', text: '#166534' }
 }
 
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
+
 const BudgetProgress = ({ status }) => {
+  const { user } = useAuth()
   if (!status.length) return null
+
+  const baseCurrency = user?.currency || 'INR'
+  const symbol = CURRENCY_SYMBOLS[baseCurrency] || baseCurrency || '₹'
+  const locale = baseCurrency === 'INR' ? 'en-IN' : 'en-US'
 
   return (
     <FadeInSection>
@@ -29,7 +44,7 @@ const BudgetProgress = ({ status }) => {
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-sm font-medium text-ink-700">{item.category}</span>
                 <span className="text-xs font-mono" style={{ color: colors.text }}>
-                  ₹{item.spent.toLocaleString('en-IN')} / ₹{item.limit.toLocaleString('en-IN')}
+                  {symbol}{item.spent.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} / {symbol}{item.limit.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   {over && <span className="ml-1 font-semibold">(over budget!)</span>}
                 </span>
               </div>

@@ -1,11 +1,26 @@
-const SORT_OPTIONS = [
-  { value: 'date_desc',   label: '🕐 Newest first'   },
-  { value: 'date_asc',    label: '🕐 Oldest first'    },
-  { value: 'amount_desc', label: '₹ Highest amount'  },
-  { value: 'amount_asc',  label: '₹ Lowest amount'   },
-]
+import { useAuth } from '../context/AuthContext'
+
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
 
 const SearchFilterBar = ({ search, onSearchChange, advanced, onAdvancedChange, onReset }) => {
+  const { user } = useAuth()
+  const baseCurrency = user?.currency || 'INR'
+  const symbol = CURRENCY_SYMBOLS[baseCurrency] || baseCurrency || '₹'
+
+  const sortOptions = [
+    { value: 'date_desc',   label: '🕐 Newest first'   },
+    { value: 'date_asc',    label: '🕐 Oldest first'    },
+    { value: 'amount_desc', label: `${symbol} Highest amount`  },
+    { value: 'amount_asc',  label: `${symbol} Lowest amount`   },
+  ]
+
   return (
     <div className="rounded-2xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-none p-4 space-y-4">
 
@@ -38,10 +53,10 @@ const SearchFilterBar = ({ search, onSearchChange, advanced, onAdvancedChange, o
         {/* Min amount */}
         <div className="space-y-1.5 col-span-1 md:flex-1 md:min-w-[110px]">
           <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 dark:text-zinc-500 block">
-            Min (₹)
+            Min ({symbol})
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 text-sm pointer-events-none">₹</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 text-sm pointer-events-none">{symbol}</span>
             <input
               type="number" min="0" placeholder="0"
               value={advanced.minAmount}
@@ -54,10 +69,10 @@ const SearchFilterBar = ({ search, onSearchChange, advanced, onAdvancedChange, o
         {/* Max amount */}
         <div className="space-y-1.5 col-span-1 md:flex-1 md:min-w-[110px]">
           <label className="text-[11px] font-bold tracking-widest uppercase text-gray-400 dark:text-zinc-500 block">
-            Max (₹)
+            Max ({symbol})
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 text-sm pointer-events-none">₹</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500 text-sm pointer-events-none">{symbol}</span>
             <input
               type="number" min="0" placeholder="∞"
               value={advanced.maxAmount}
@@ -77,7 +92,7 @@ const SearchFilterBar = ({ search, onSearchChange, advanced, onAdvancedChange, o
             onChange={(e) => onAdvancedChange({ sortBy: e.target.value })}
             className="input-field !bg-gray-50 !border-gray-300 dark:!bg-zinc-700/60 dark:!border-zinc-600 hover:!border-gray-400 focus:!border-sage focus:!ring-2 focus:!ring-sage/20 transition-colors w-full"
           >
-            {SORT_OPTIONS.map((o) => (
+            {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>

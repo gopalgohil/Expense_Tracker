@@ -1,10 +1,20 @@
 import { motion } from 'framer-motion'
 import CountUpNumber from './animations/CountUpNumber'
+import { useAuth } from '../context/AuthContext'
 
 const COLORS = {
   'Food & Dining': '#eab308', 'Transport': '#3b82f6', 'Shopping': '#a855f7',
   'Entertainment': '#ec4899', 'Health': '#22c55e', 'Utilities': '#f97316',
   'Housing': '#6366f1', 'Education': '#06b6d4', 'Travel': '#14b8a6', 'Other': '#9ca3af',
+}
+
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
 }
 
 const StatCard = ({ label, icon, children, delay = 0 }) => (
@@ -26,11 +36,15 @@ const StatCard = ({ label, icon, children, delay = 0 }) => (
 )
 
 const StatsBar = ({ expenses }) => {
+  const { user } = useAuth()
   if (!expenses.length) return null
 
-  const total      = expenses.reduce((s, e) => s + e.amount, 0)
+  const baseCurrency = user?.currency || 'INR'
+  const symbol = CURRENCY_SYMBOLS[baseCurrency] || baseCurrency || '₹'
+
+  const total      = expenses.reduce((s, e) => s + (e.amountInBaseCurrency ?? e.amount), 0)
   const byCategory = expenses.reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + e.amount
+    acc[e.category] = (acc[e.category] || 0) + (e.amountInBaseCurrency ?? e.amount)
     return acc
   }, {})
   const sorted = Object.entries(byCategory).sort((a, b) => b[1] - a[1])
@@ -57,7 +71,7 @@ const StatsBar = ({ expenses }) => {
           }
         >
           <p className="text-xl font-bold font-mono text-ink-800 dark:text-zinc-150">
-            ₹<CountUpNumber value={total} decimals={2} />
+            {symbol}<CountUpNumber value={total} decimals={2} />
           </p>
         </StatCard>
 
@@ -90,7 +104,7 @@ const StatsBar = ({ expenses }) => {
             <div>
               <p className="text-sm font-bold text-ink-800 dark:text-zinc-150 truncate max-w-[150px]">{top[0]}</p>
               <p className="text-[10px] text-ink-400 dark:text-zinc-500 font-mono mt-0.5">
-                ₹<CountUpNumber value={top[1]} decimals={0} />
+                {symbol}<CountUpNumber value={top[1]} decimals={0} />
                 {' '}({Math.round((top[1] / total) * 100)}%)
               </p>
             </div>
@@ -110,7 +124,7 @@ const StatsBar = ({ expenses }) => {
           }
         >
           <p className="text-xl font-bold font-mono text-ink-800 dark:text-zinc-150">
-            ₹<CountUpNumber value={total / expenses.length} decimals={0} />
+            {symbol}<CountUpNumber value={total / expenses.length} decimals={0} />
           </p>
         </StatCard>
       </div>
@@ -126,17 +140,17 @@ const StatsBar = ({ expenses }) => {
         
         {/* Progress Bar Container */}
         <div className="flex h-3 rounded-full overflow-hidden bg-ink-50 dark:bg-zinc-900/60 p-0.5 border border-ink-100/50 dark:border-zinc-800/30 gap-0.5">
-          {sorted.map(([cat, amt], i) => (
-            <motion.div
-              key={cat}
-              style={{ backgroundColor: COLORS[cat] || COLORS['Other'] }}
-              title={`${cat}: ₹${amt.toFixed(2)}`}
-              className="h-full rounded-sm transition-all duration-300"
-              initial={{ width: 0 }}
-              animate={{ width: `${(amt / total) * 100}%` }}
-              transition={{ duration: 0.6, delay: i * 0.04, ease: 'easeOut' }}
-            />
-          ))}
+            {sorted.map(([cat, amt], i) => (
+              <motion.div
+                key={cat}
+                style={{ backgroundColor: COLORS[cat] || COLORS['Other'] }}
+                title={`${cat}: ${symbol}${amt.toFixed(2)}`}
+                className="h-full rounded-sm transition-all duration-300"
+                initial={{ width: 0 }}
+                animate={{ width: `${(amt / total) * 100}%` }}
+                transition={{ duration: 0.6, delay: i * 0.04, ease: 'easeOut' }}
+              />
+            ))}
         </div>
 
         {/* Legend badges with percentage */}

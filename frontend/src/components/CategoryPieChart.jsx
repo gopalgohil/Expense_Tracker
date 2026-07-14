@@ -16,23 +16,38 @@ const COLORS = {
 }
 
 import AnimatedChart from './animations/AnimatedChart'
+import { useAuth } from '../context/AuthContext'
 
-const CustomTooltip = ({ active, payload }) => {
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
+
+const CustomTooltip = ({ active, payload, symbol }) => {
   if (!active || !payload?.length) return null
   const { name, value } = payload[0]
+  const locale = symbol === '₹' ? 'en-IN' : 'en-US'
   return (
     <div className="bg-white border border-ink-100 rounded-xl shadow-lift px-3 py-2 text-xs">
       <p className="font-medium text-ink-700">{name}</p>
       <p className="text-ink-500 font-mono mt-0.5">
-        ₹{Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        {symbol}{Number(value).toLocaleString(locale, { minimumFractionDigits: 2 })}
       </p>
     </div>
   )
 }
 
 const CategoryPieChart = ({ expenses, chartKey = 'pie' }) => {
+  const { user } = useAuth()
+  const baseCurrency = user?.currency || 'INR'
+  const symbol = CURRENCY_SYMBOLS[baseCurrency] || baseCurrency || '₹'
+
   const byCategory = expenses.reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + e.amount
+    acc[e.category] = (acc[e.category] || 0) + (e.amountInBaseCurrency ?? e.amount)
     return acc
   }, {})
 
@@ -69,7 +84,7 @@ const CategoryPieChart = ({ expenses, chartKey = 'pie' }) => {
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip symbol={symbol} />} />
             <Legend
               iconType="circle"
               iconSize={8}

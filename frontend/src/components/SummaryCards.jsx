@@ -1,11 +1,31 @@
 import { motion } from 'framer-motion'
 import CountUpNumber from './animations/CountUpNumber'
 import FadeInSection from './animations/FadeInSection'
+import { useAuth } from '../context/AuthContext'
 
 const fmt = (n) => Number(n)
 
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  CAD: 'C$',
+  AUD: 'A$',
+}
+
+const formatCurrency = (amount, currency) => {
+  const symbol = CURRENCY_SYMBOLS[currency] || currency || '₹';
+  const locale = currency === 'INR' ? 'en-IN' : 'en-US';
+  return `${symbol}${Number(amount).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 const SummaryCards = ({ summary, topCats }) => {
+  const { user } = useAuth()
   if (!summary) return null
+
+  const baseCurrency = user?.currency || 'INR'
+  const symbol = CURRENCY_SYMBOLS[baseCurrency] || baseCurrency || '₹'
 
   const { currentTotal, changePercent, avgDailySpend } = summary
   const top = topCats?.[0]
@@ -17,7 +37,7 @@ const SummaryCards = ({ summary, topCats }) => {
     {
       label: 'Total Spent',
       numeric: currentTotal,
-      prefix: '₹',
+      prefix: symbol,
       decimals: 0,
       sub: 'This month',
       icon: (
@@ -31,7 +51,7 @@ const SummaryCards = ({ summary, topCats }) => {
     {
       label: 'Top Category',
       text: top ? top.category : '—',
-      sub: top ? `₹${fmt(top.total).toLocaleString('en-IN')}` : 'No data',
+      sub: top ? `${formatCurrency(top.total, baseCurrency)}` : 'No data',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round"
@@ -68,7 +88,7 @@ const SummaryCards = ({ summary, topCats }) => {
     {
       label: 'Avg Daily Spend',
       numeric: avgDailySpend,
-      prefix: '₹',
+      prefix: symbol,
       decimals: 0,
       sub: 'Per day this month',
       icon: (
