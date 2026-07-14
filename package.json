@@ -11,6 +11,6 @@
   },
   "private": true,
   "dependencies": {
-    "firebase": "^12.15.0"
+    "firebase": "^12.16.0"
   }
 }
