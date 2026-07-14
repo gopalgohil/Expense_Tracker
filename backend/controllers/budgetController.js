@@ -32,7 +32,7 @@ export const upsertBudget = async (req, res) => {
       date: { $gte: startDate, $lt: endDate }
     });
 
-    const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalSpent = expenses.reduce((sum, e) => sum + (e.amountInBaseCurrency ?? e.amount), 0);
     if (Number(limit) < totalSpent) {
       return res.status(400).json({ message: 'Budget cannot be less than the amount already spent.' });
     }
@@ -103,7 +103,7 @@ export const getBudgetStatus = async (req, res) => {
 
     // Sum spending per category
     const spent = expenses.reduce((acc, e) => {
-      acc[e.category] = (acc[e.category] || 0) + e.amount;
+      acc[e.category] = (acc[e.category] || 0) + (e.amountInBaseCurrency ?? e.amount);
       return acc;
     }, {});
 

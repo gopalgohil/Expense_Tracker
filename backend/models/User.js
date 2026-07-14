@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
     },
     currency: {
       type: String,
-      enum: ['INR', 'USD', 'EUR'],
+      enum: ['INR', 'USD', 'EUR', 'GBP', 'CAD', 'AUD'],
       default: 'INR',
     },
     authProvider: {

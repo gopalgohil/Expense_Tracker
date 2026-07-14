@@ -8,8 +8,7 @@ const CATEGORIES = [
 ]
 
 const CURRENCIES = [
-  'INR','USD','EUR','GBP','JPY','CAD','AUD','SGD','CHF','NZD',
-  'HKD','CNY','MXN','BRL','ZAR','SEK','NOK','DKK','THB','MYR',
+  'INR', 'USD', 'EUR', 'GBP', 'CAD', 'AUD',
 ]
 
 const INTERVALS = [

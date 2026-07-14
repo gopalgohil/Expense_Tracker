@@ -1,6 +1,8 @@
 import Expense from '../models/Expense.js';
 import Budget from '../models/Budget.js';
+import User from '../models/User.js';
 import { getPeriodRanges } from '../utils/dateHelper.js';
+import { convertAmount } from '../utils/currencyService.js';
 
 // @desc    Get all user expenses (with optional filters, search, sort, pagination)
 // @route   GET /api/expenses
@@ -83,7 +85,7 @@ export const getExpenses = async (req, res) => {
 // @route   POST /api/expenses
 // @access  Private
 const createExpense = async (req, res) => {
-  const { amount, category, date, description, isRecurring, recurrenceInterval } = req.body;
+  const { amount, category, date, description, isRecurring, recurrenceInterval, currency } = req.body;
 
   try {
     if (amount === undefined || amount === null || !category || !date) {
@@ -125,23 +127,37 @@ const createExpense = async (req, res) => {
         date: { $gte: startOfMonth, $lt: endOfMonth }
       });
 
-      const totalSpent = existingExpenses.reduce((sum, e) => sum + e.amount, 0);
-      if (totalSpent + Number(amount) > budget.limit && !req.body.bypassBudget) {
+      const totalSpent = existingExpenses.reduce((sum, e) => sum + (e.amountInBaseCurrency ?? e.amount), 0);
+      // convert this expense too for comparison
+      const user = await User.findById(req.user._id);
+      const baseCur = user?.currency || 'INR';
+      const thisCur = (currency || 'INR').toUpperCase();
+      const thisAmtInBase = await convertAmount(Number(amount), thisCur, baseCur);
+
+      if (totalSpent + thisAmtInBase > budget.limit && !req.body.bypassBudget) {
         return res.status(400).json({
-          message: `Budget limit exceeded. Your budget for this category is ₹${budget.limit}.`,
+          message: `Budget limit exceeded. Your budget for this category is ${baseCur} ${budget.limit}.`,
           exceedsBudget: true
         });
       }
     }
 
+    // Compute amountInBaseCurrency
+    const user2 = await User.findById(req.user._id);
+    const baseCurrency = user2?.currency || 'INR';
+    const expenseCurrency = (currency || 'INR').toUpperCase();
+    const amountInBase = await convertAmount(Number(amount), expenseCurrency, baseCurrency);
+
     const expense = await Expense.create({
-      amount:             Number(amount),
+      amount:               Number(amount),
       category,
-      date:               new Date(date),
-      description:        description || '',
-      userId:             req.user._id,
-      isRecurring:        Boolean(isRecurring),
-      recurrenceInterval: isRecurring ? recurrenceInterval : null,
+      date:                 new Date(date),
+      description:          description || '',
+      userId:               req.user._id,
+      currency:             expenseCurrency,
+      amountInBaseCurrency: amountInBase,
+      isRecurring:          Boolean(isRecurring),
+      recurrenceInterval:   isRecurring ? recurrenceInterval : null,
     });
 
     return res.status(201).json(expense);
@@ -159,7 +175,7 @@ const createExpense = async (req, res) => {
 // @route   PUT /api/expenses/:id
 // @access  Private
 const updateExpense = async (req, res) => {
-  const { amount, category, date, description, isRecurring, recurrenceInterval } = req.body;
+  const { amount, category, date, description, isRecurring, recurrenceInterval, currency } = req.body;
   const expenseId = req.params.id;
 
   try {
@@ -174,6 +190,7 @@ const updateExpense = async (req, res) => {
       if (Number(amount) <= 0) return res.status(400).json({ message: 'Amount must be positive' });
       expense.amount = Number(amount);
     }
+    if (currency)              expense.currency    = currency.toUpperCase();
     if (category)              expense.category    = category;
     if (date)                  expense.date        = new Date(date);
     if (description !== undefined) expense.description = description;
@@ -215,14 +232,19 @@ const updateExpense = async (req, res) => {
         _id: { $ne: expense._id }
       });
 
-      const totalSpent = existingExpenses.reduce((sum, e) => sum + e.amount, 0);
-      if (totalSpent + expense.amount > budget.limit && !req.body.bypassBudget) {
+      const totalSpent = existingExpenses.reduce((sum, e) => sum + (e.amountInBaseCurrency ?? e.amount), 0);
+      if (totalSpent + (expense.amountInBaseCurrency ?? expense.amount) > budget.limit && !req.body.bypassBudget) {
         return res.status(400).json({
-          message: `Budget limit exceeded. Your budget for this category is ₹${budget.limit}.`,
+          message: `Budget limit exceeded. Your budget for this category is ${budget.limit}.`,
           exceedsBudget: true
         });
       }
     }
+
+    // Recompute amountInBaseCurrency if amount or currency changed
+    const userDoc = await User.findById(req.user._id);
+    const baseCur = userDoc?.currency || 'INR';
+    expense.amountInBaseCurrency = await convertAmount(expense.amount, expense.currency || 'INR', baseCur);
 
     const updated = await expense.save();
     return res.status(200).json(updated);

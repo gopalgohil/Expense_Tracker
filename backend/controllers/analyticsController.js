@@ -12,7 +12,7 @@ export const topCategories = async (req, res) => {
 
     const result = await Expense.aggregate([
       { $match: matchCondition },
-      { $group: { _id: '$category', total: { $sum: '$amount' }, count: { $sum: 1 } } },
+      { $group: { _id: '$category', total: { $sum: { $ifNull: ['$amountInBaseCurrency', '$amount'] } }, count: { $sum: 1 } } },
       { $sort: { total: -1 } },
       { $limit: 3 },
       { $project: { category: '$_id', total: 1, count: 1, _id: 0 } },
@@ -44,8 +44,8 @@ export const monthlyCompare = async (req, res) => {
       Expense.find(prevMatch),
     ]);
 
-    const currTotal = currExp.reduce((s, e) => s + e.amount, 0);
-    const prevTotal = prevExp.reduce((s, e) => s + e.amount, 0);
+    const currTotal = currExp.reduce((s, e) => s + (e.amountInBaseCurrency ?? e.amount), 0);
+    const prevTotal = prevExp.reduce((s, e) => s + (e.amountInBaseCurrency ?? e.amount), 0);
 
     const change = prevTotal === 0
       ? (currTotal > 0 ? 100 : 0)
@@ -91,7 +91,7 @@ export const dailyBreakdown = async (req, res) => {
       const map = {};
       expenses.forEach((e) => {
         const yr = new Date(e.date).getUTCFullYear();
-        map[yr] = (map[yr] || 0) + e.amount;
+        map[yr] = (map[yr] || 0) + (e.amountInBaseCurrency ?? e.amount);
       });
       Object.keys(map).sort().forEach((yr) => {
         data.push({ day: String(yr), total: map[yr] });
@@ -102,7 +102,7 @@ export const dailyBreakdown = async (req, res) => {
       const map = {};
       expenses.forEach((e) => {
         const m = new Date(e.date).getUTCMonth(); // 0-11
-        map[m] = (map[m] || 0) + e.amount;
+        map[m] = (map[m] || 0) + (e.amountInBaseCurrency ?? e.amount);
       });
       months.forEach((name, idx) => {
         data.push({ day: name, total: map[idx] || 0 });
@@ -118,7 +118,7 @@ export const dailyBreakdown = async (req, res) => {
       const map = {};
       expenses.forEach((e) => {
         const d = new Date(e.date).getUTCDate();
-        map[d] = (map[d] || 0) + e.amount;
+        map[d] = (map[d] || 0) + (e.amountInBaseCurrency ?? e.amount);
       });
       for (let i = 1; i <= daysInMonth; i++) {
         data.push({ day: i, total: map[i] || 0 });
@@ -133,7 +133,7 @@ export const dailyBreakdown = async (req, res) => {
         const map = {};
         expenses.forEach((e) => {
           const key = new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-          map[key] = (map[key] || 0) + e.amount;
+          map[key] = (map[key] || 0) + (e.amountInBaseCurrency ?? e.amount);
         });
 
         let curr = new Date(ranges.current.start.getTime());
@@ -149,7 +149,7 @@ export const dailyBreakdown = async (req, res) => {
         expenses.forEach((e) => {
           const expTime = new Date(e.date).getTime();
           const wkIdx = Math.floor((expTime - ranges.current.start.getTime()) / (1000 * 60 * 60 * 24 * 7));
-          map[wkIdx] = (map[wkIdx] || 0) + e.amount;
+          map[wkIdx] = (map[wkIdx] || 0) + (e.amountInBaseCurrency ?? e.amount);
         });
         const numWeeks = Math.ceil(diffDays / 7);
         for (let i = 0; i < numWeeks; i++) {
@@ -161,7 +161,7 @@ export const dailyBreakdown = async (req, res) => {
         expenses.forEach((e) => {
           const d = new Date(e.date);
           const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-          map[key] = (map[key] || 0) + e.amount;
+          map[key] = (map[key] || 0) + (e.amountInBaseCurrency ?? e.amount);
         });
         let curr = new Date(ranges.current.start.getTime());
         const last = new Date(ranges.current.end.getTime());

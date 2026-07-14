@@ -33,6 +33,18 @@ const expenseSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // ── Multi-currency fields ──────────────────────────
+    currency: {
+      type: String,
+      default: 'INR',
+      uppercase: true,
+      trim: true,
+    },
+    amountInBaseCurrency: {
+      type: Number,
+      default: null, // null = not yet converted (legacy records)
+    },
+
     // ── Recurring fields ──────────────────────────
     isRecurring: {
       type: Boolean,

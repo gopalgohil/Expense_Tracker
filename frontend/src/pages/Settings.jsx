@@ -12,22 +12,8 @@ const CURRENCIES = [
   { code: 'USD', label: '🇺🇸 USD — US Dollar' },
   { code: 'EUR', label: '🇪🇺 EUR — Euro' },
   { code: 'GBP', label: '🇬🇧 GBP — British Pound' },
-  { code: 'JPY', label: '🇯🇵 JPY — Japanese Yen' },
   { code: 'CAD', label: '🇨🇦 CAD — Canadian Dollar' },
   { code: 'AUD', label: '🇦🇺 AUD — Australian Dollar' },
-  { code: 'SGD', label: '🇸🇬 SGD — Singapore Dollar' },
-  { code: 'CHF', label: '🇨🇭 CHF — Swiss Franc' },
-  { code: 'NZD', label: '🇳🇿 NZD — New Zealand Dollar' },
-  { code: 'HKD', label: '🇭🇰 HKD — Hong Kong Dollar' },
-  { code: 'CNY', label: '🇨🇳 CNY — Chinese Yuan' },
-  { code: 'MXN', label: '🇲🇽 MXN — Mexican Peso' },
-  { code: 'BRL', label: '🇧🇷 BRL — Brazilian Real' },
-  { code: 'ZAR', label: '🇿🇦 ZAR — South African Rand' },
-  { code: 'SEK', label: '🇸🇪 SEK — Swedish Krona' },
-  { code: 'NOK', label: '🇳🇴 NOK — Norwegian Krone' },
-  { code: 'DKK', label: '🇩🇰 DKK — Danish Krone' },
-  { code: 'THB', label: '🇹🇭 THB — Thai Baht' },
-  { code: 'MYR', label: '🇲🇾 MYR — Malaysian Ringgit' },
 ]
 
 // ── Reusable components defined OUTSIDE Settings ──────────────
@@ -205,7 +191,7 @@ const Settings = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div style={{ maxWidth: '680px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }} className="space-y-6">
 
       {/* Header */}
       <div>

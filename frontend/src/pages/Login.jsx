@@ -33,7 +33,6 @@ const Login = () => {
   const [forgotErrors, setForgotErrors] = useState({})
   const [forgotSubmitting, setForgotSubmitting] = useState(false)
 
-  if (initializing) return null
 
   // Already logged in → go to dashboard
   if (user) {
