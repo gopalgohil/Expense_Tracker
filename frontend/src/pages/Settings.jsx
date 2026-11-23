@@ -191,7 +191,7 @@ const Settings = () => {
   }
 
   return (
-    <div style={{ maxWidth: '680px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }} className="space-y-6">
+    <div className="w-full max-w-5xl mx-auto space-y-6">
 
       {/* Header */}
       <div>
